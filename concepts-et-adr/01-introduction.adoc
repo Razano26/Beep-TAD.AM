@@ -1,0 +1,63 @@
+= Introduction
+
+== Objectifs du document
+
+Ce document présente l’architecture technique de l’application **Beep**, une messagerie en temps réel conçue pour offrir une expérience fluide, sécurisée et évolutive, à destination d’un large public.
+
+Il a pour objectif de :
+
+* Décrire les choix structurants de l’architecture de l’application
+* Formaliser les contraintes fonctionnelles et techniques
+* Proposer une architecture modulaire, maintenable et scalable
+* Servir de référence pour les équipes de développement, de déploiement et d’exploitation
+
+== Portée du document
+
+Ce document couvre :
+
+* L’organisation fonctionnelle de l’application et ses rôles métiers
+* Le découpage en services logiques et les interactions inter-domaines
+* Les choix technologiques pour l’infrastructure, la sécurité, la supervision et la résilience
+* Les mesures d’observabilité, de sécurité et de protection des données
+* Les orientations pour le déploiement, la continuité de service et l’évolution
+
+Il ne traite pas :
+
+* Du design graphique ou de l’interface utilisateur
+* Des décisions commerciales ou de marketing
+* Des détails d’implémentation ou de code
+
+== Public cible
+
+Le présent document s’adresse principalement :
+
+* Aux architectes logiciels et techniques
+* Aux ingénieurs DevOps et SRE
+* Aux développeurs impliqués dans le projet
+* Aux responsables de l’infrastructure
+* À toute personne participant à l’analyse, au pilotage ou à l’évolution du système
+
+== Méthodologie
+
+// TODO: Update this section when the document is more mature
+L’approche adoptée repose sur une structuration en vues :
+
+* Vue métier (rôles, cas d’usage, règles fonctionnelles)
+* Vue logique (découpage en services et responsabilités)
+* Vue technique (infrastructure, sécurité, déploiement)
+* Vues transverses (observabilité, supervision, résilience)
+
+Les décisions d’architecture sont documentées, argumentées et illustrées par des schémas (composants, séquences, déploiement, etc.) afin de garantir la transparence et la traçabilité des choix effectués.
+
+== Historique
+
+[cols="1,1,1,1"]
+|===
+| Version | Date | Auteur | Remarques
+
+| 0.1
+| 2025-05-27
+| Louis Labeyrie
+| Version initiale de l’introduction
+
+|===
