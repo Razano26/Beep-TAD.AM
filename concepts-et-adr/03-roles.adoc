@@ -1,0 +1,89 @@
+= Modèle de rôles
+
+== Présentation générale
+
+L'application Beep repose sur un système de rôles hiérarchiques permettant de gérer les droits et responsabilités des utilisateurs à deux niveaux distincts :
+
+* des **rôles globaux**, valables sur toute la plateforme
+* des **rôles locaux**, propres à chaque serveur d’échange
+
+Cette séparation garantit à la fois la cohérence globale du système et la flexibilité dans la gestion des espaces communautaires.
+
+== Rôles globaux (plateforme)
+
+Les rôles globaux définissent les droits d’un utilisateur à l’échelle de l’application Beep. Ils sont peu nombreux et strictement définis :
+
+[cols="1,3", options="header"]
+|===
+| Rôle
+| Description
+
+| `user`
+| Rôle par défaut attribué à tout utilisateur authentifié. Donne accès aux fonctionnalités sociales, aux serveurs, à la communication et à la recherche.
+
+| `admin`
+| Rôle attribué à un superviseur de la plateforme. Peut intervenir sur les comptes utilisateurs (support, modération), accéder aux outils d’audit ou de monitoring globaux.
+|===
+
+== Rôles locaux (serveur)
+
+Chaque **serveur d’échange** fonctionne comme un sous-espace autonome dans lequel les utilisateurs peuvent se voir attribuer des rôles spécifiques. Ces rôles sont :
+
+* Créés et gérés par les utilisateurs disposant des droits adéquats
+* Stockés dans la configuration locale du serveur
+* Associés à des permissions granulaires
+
+=== Rôles par défaut
+
+[cols="1,3", options="header"]
+|===
+| Rôle
+| Description
+
+| `owner`
+| Propriétaire du serveur. Il possède tous les droits, y compris la suppression du serveur, la gestion des utilisateurs et des rôles.
+
+| `default`
+| Rôle attribué automatiquement à tout nouvel arrivant sur le serveur. Ses permissions sont configurables par le `owner`.
+|===
+
+=== Rôles personnalisés
+
+Le `owner` peut :
+- Créer des rôles personnalisés (ex: `moderator`, `content-manager`, `role-manager`)
+- Associer à chaque rôle un ensemble de permissions : lecture, écriture, gestion des canaux, gestion des rôles, etc.
+- Déléguer la **gestion des rôles** à certains utilisateurs (ex: via un rôle nommé `role-manager`)
+
+Cette approche permet de :
+- Créer une **hiérarchie locale propre à chaque communauté**
+- Appliquer le **principe du moindre privilège**
+- Faciliter la **modération collaborative** ou thématique
+
+== Exemples de rôles locaux
+
+[cols="1,3", options="header"]
+|===
+| Exemple de rôle
+| Description
+
+| `moderator`
+| Peut supprimer des messages, gérer les utilisateurs dans un canal
+
+| `role-manager`
+| Peut créer de nouveaux rôles et les attribuer à d’autres membres
+
+| `content-manager`
+| Peut publier des messages épinglés, gérer les fichiers du serveur
+|===
+
+== Portée et cumul
+
+Un utilisateur peut :
+- Avoir un rôle global (`user` ou `admin`)
+- Être membre de plusieurs serveurs avec des rôles locaux différents
+- Cumuler plusieurs rôles locaux si la configuration du serveur le permet
+
+== Représentation conceptuelle
+
+// TODO: Add a diagram of the roles
+

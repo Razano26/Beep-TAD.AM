@@ -1,0 +1,115 @@
+= Modèle conceptuel métier
+
+== Objectif
+
+Cette section présente les entités métier fondamentales manipulées par l'application Beep, ainsi que leurs relations conceptuelles. L’objectif est d’expliciter les concepts fonctionnels de haut niveau, indépendamment de toute considération technique ou d’implémentation.
+
+== Entités principales
+
+[cols="1,3", options="header"]
+|===
+| Entité
+| Description
+
+| `Utilisateur`
+| Représente un compte personnel sur la plateforme. Un utilisateur peut rejoindre des serveurs, envoyer des messages, créer des canaux, etc.
+
+| `Serveur`
+| Espace communautaire privé ou public, créé par un utilisateur (owner). Contient des canaux, des membres et une configuration de rôles personnalisée.
+
+| `Canal`
+| Espace de communication (texte, vocal, ou autre) appartenant à un serveur. Peut être public ou restreint à certains rôles.
+
+| `Message`
+| Contenu textuel ou multimédia posté par un utilisateur dans un canal.
+
+| `Rôle local`
+| Ensemble de permissions définies dans un serveur et attribuées à un ou plusieurs utilisateurs.
+
+| `Invitation`
+| Requête d’amitié entre deux utilisateurs, ou d’accès à un serveur.
+
+| `Relation d’amitié`
+| Lien réciproque entre deux utilisateurs permettant une communication directe.
+
+| `Fichier`
+| Élément partagé dans un canal ou en message privé (image, PDF, etc.)
+|===
+
+== Relations entre entités
+
+[mermaid]
+----
+erDiagram
+    Utilisateur {
+        UUID id
+        string email
+        string username
+    }
+
+    Serveur {
+        UUID id
+        string nom
+    }
+
+    Canal {
+        UUID id
+        string nom
+        string type
+    }
+
+    Message {
+        UUID id
+        text contenu
+        datetime date
+    }
+
+    RoleLocal {
+        UUID id
+        string nom
+        json permissions
+    }
+
+    Invitation {
+        UUID id
+        string type
+        datetime date
+    }
+
+    Fichier {
+        UUID id
+        string nom
+        string type
+    }
+
+    Utilisateur ||--o{ Serveur : "est membre de"
+    Utilisateur ||--o{ Invitation : "envoie/reçoit"
+    Utilisateur ||--o{ Message : "écrit"
+    Utilisateur ||--o{ Fichier : "upload"
+
+    Serveur ||--o{ Canal : "contient"
+    Serveur ||--o{ RoleLocal : "définit"
+    Serveur ||--o{ Invitation : "émet"
+
+    Canal ||--o{ Message : "contient"
+    Canal ||--o{ Fichier : "partage"
+
+    RoleLocal ||--o{ Utilisateur : "est attribué à"
+    Message ||--o{ Fichier : "peut inclure"
+    Utilisateur ||--|| Utilisateur : "ami avec"
+----
+
+== Éléments notables
+
+- Un `Utilisateur` peut appartenir à plusieurs `Serveurs`
+- Un `Serveur` possède plusieurs `Canaux`, `Messages`, `Rôles`, et `Membres`
+- Un `Rôle` est défini dans le périmètre d’un `Serveur` uniquement
+- Une `Invitation` peut cibler un autre utilisateur (demande d’amitié) ou un serveur (invitation à rejoindre)
+- Les `Messages` peuvent être supprimés, modifiés ou signalés (cf. règles métier)
+- Les `Fichiers` peuvent être liés à un `Message`, à un `Canal` ou à un `Utilisateur` directement
+
+== Évolutions prévues
+
+- Ajout de `Notifications` (push, in-app)
+- Prise en charge des `Statuts personnalisés`
+- Système de `Tags` ou `Réactions` sur les messages
