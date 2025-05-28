@@ -40,7 +40,21 @@ Cette section formalise les règles fonctionnelles qui encadrent les comportemen
 * Seuls les utilisateurs avec permission `moderate_messages` peuvent voir les messages cachés.
 * Les serveurs inactifs depuis plus de 6 mois sont archivés automatiquement.
 
-== Perspectives d’évolution
+== Règles transverses
+
+* Les noms d'utilisateurs doivent :
+  ** Contenir entre 3 et 32 caractères
+  ** Ne pas contenir de caractères spéciaux (uniquement lettres, chiffres, tirets et underscores)
+* Les noms de serveurs et de canaux doivent :
+  ** Contenir entre 2 et 50 caractères
+  ** Ne pas contenir de caractères spéciaux (uniquement lettres, chiffres, tirets et underscores)
+* Les messages doivent :
+  ** Ne pas dépasser 2000 caractères
+* Les fichiers joints doivent :
+  ** Ne pas dépasser 50 Mo par fichier
+  ** Être d'un type autorisé (images, documents, audio, vidéo)
+
+== Perspectives d'évolution
 
 [NOTE]
 ====

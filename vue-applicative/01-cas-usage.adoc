@@ -49,7 +49,28 @@ Cette section décrit les principales fonctionnalités accessibles aux utilisate
 * En tant que `owner`, je veux créer des rôles personnalisés dans mon serveur.
 * En tant que `owner`, je veux déléguer la gestion des rôles à d'autres utilisateurs via un rôle intermédiaire.
 * Je veux attribuer des rôles aux membres de mon serveur selon leurs responsabilités.
-* Je veux restreindre l’accès à certaines actions (création de canal, suppression de message…) selon le rôle.
+* Je veux restreindre l'accès à certaines actions (création de canal, suppression de message…) selon le rôle.
+
+== Contraintes fonctionnelles
+
+=== Performance et latence
+* Le temps de propagation d'un message entre l'émetteur et les destinataires doit être inférieur à 500ms.
+* Le temps de chargement initial de l'application doit être inférieur à 2 secondes.
+* La synchronisation des messages doit être quasi-instantanée (moins de 100ms) entre les différents clients connectés.
+
+=== Disponibilité et fiabilité
+* L'application doit être disponible 99.9% du temps (hors maintenance planifiée).
+* Les messages doivent être persistés de manière fiable, avec une garantie de non-perte.
+* En cas de déconnexion temporaire, la reconnexion doit être automatique et transparente.
+
+=== Sécurité
+* Les messages privés doivent être chiffrés de bout en bout.
+* Les sessions utilisateur doivent expirer après 24 heures d'inactivité.
+* Les tentatives de connexion échouées doivent être limitées à 5 par minute par adresse IP.
+
+=== Scalabilité
+* L'application doit supporter jusqu'à 1000 utilisateurs simultanés par serveur.
+* Un serveur peut contenir jusqu'à 100 canaux.
 
 == Illustration : Diagrammes de cas d’usage
 

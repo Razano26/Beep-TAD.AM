@@ -1,0 +1,109 @@
+= Flux fonctionnels entre services
+
+== Objectif
+
+Cette section décrit les principaux flux d’interaction entre les services logiques de l’application Beep. Elle vise à illustrer les échanges récurrents de données ou d'appels, les dépendances fonctionnelles, et les circuits métier associés aux cas d’usage clés.
+
+Les flux présentés ici préparent le terrain pour les vues techniques détaillées (ex: APIs, messages, événements asynchrones).
+
+== Méthodologie
+
+Chaque flux est structuré selon :
+- Le **contexte métier**
+- Les **services impliqués**
+- La **nature des interactions** (appel synchrone, publication d’événement, etc.)
+- Un **diagramme de séquence ou de flux** illustratif
+
+== Flux 1 : Création de message dans un canal
+
+=== Contexte
+Lorsqu’un utilisateur envoie un message dans un canal, plusieurs services interviennent pour vérifier les droits, stocker le message et en notifier les membres.
+
+=== Services impliqués
+- `Messagerie`
+- `Canaux`
+- `Notifications`
+
+=== Description du flux
+1. L’utilisateur envoie un message.
+2. Le service `Messagerie` vérifie les permissions d’écriture auprès du service `Canaux`.
+3. Le message est enregistré.
+4. Le service `Notifications` est notifié et pousse l’information aux clients abonnés.
+
+=== Diagramme
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Messagerie
+    participant Canaux
+    participant Notifications
+
+    Client->>Messagerie: POST /channels/:id/messages
+    Messagerie->>Canaux: Check write permission
+    Canaux-->>Messagerie: OK
+    Messagerie->>Messagerie: Store message
+    Messagerie->>Notifications: Emit "new_message"
+    Notifications-->>Client: Push notification
+----
+
+== Flux 2 : Ajout d’un ami
+
+=== Contexte
+Un utilisateur invite un autre utilisateur à devenir son ami.
+
+=== Services impliqués
+- `Gestion des utilisateurs`
+- `Notifications`
+
+=== Description
+1. Le client initie une invitation.
+2. Le service `Utilisateurs` crée une invitation et la stocke.
+3. Le service `Notifications` est notifié pour afficher une alerte à l’utilisateur invité.
+
+=== Diagramme
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Utilisateurs
+    participant Notifications
+
+    Client->>Utilisateurs: POST /friend-request
+    Utilisateurs->>Utilisateurs: Crée l'invitation
+    Utilisateurs->>Notifications: Emit "friend_request"
+    Notifications-->>Client: Notification in-app
+----
+
+== Flux 3 : Acceptation d’une invitation à un serveur
+
+=== Contexte
+Lorsqu’un utilisateur accepte une invitation, il devient membre d’un serveur.
+
+=== Services impliqués
+- `Serveurs communautaires`
+- `Canaux`
+- `Rôles`
+- `Notifications`
+
+=== Description
+1. L’utilisateur accepte une invitation.
+2. Le service `Serveurs` ajoute l’utilisateur à la liste des membres.
+3. Le service `Rôles` lui attribue le rôle par défaut.
+4. Le service `Canaux` calcule les accès autorisés.
+5. Le service `Notifications` est mis à jour.
+
+=== Diagramme
+[NOTE]
+====
+Diagramme à insérer — TODO
+====
+
+== Évolutions prévues
+
+- Décrire les flux asynchrones (ex: archivage automatique des serveurs inactifs)
+- Détailler la propagation d’événements en cas de suppression de compte
+- Ajouter des flux pour le système de modération ou l'édition collaborative
+
