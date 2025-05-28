@@ -1,0 +1,65 @@
+= Cas d’usage de l’application Beep
+
+== Objectif
+
+Cette section décrit les principales fonctionnalités accessibles aux utilisateurs à travers des cas d’usage représentatifs. Ces cas permettent d’illustrer les besoins fonctionnels, les interactions entre l’utilisateur et le système, et de poser les bases du découpage en services.
+
+== Authentification et gestion de compte
+
+=== En tant que visiteur (non connecté)
+* Je veux créer un compte Beep avec une adresse e-mail et un mot de passe, afin d’accéder à l’application.
+* Je veux créer un compte Beep via mon compte Google ou mon compte Polytech, afin de simplifier la connexion.
+* Je veux me connecter à mon compte Beep, quel que soit le mode de création initial.
+* Je veux associer mon compte Google à mon compte Beep existant pour faciliter les futures connexions.
+
+=== En tant qu’utilisateur connecté
+* Je veux pouvoir modifier mes informations personnelles (email, mot de passe, avatar…).
+* Je veux me déconnecter manuellement ou automatiquement après inactivité.
+
+== Gestion des amis et invitations
+
+* Je veux envoyer une invitation à un autre utilisateur par son identifiant unique.
+* Je veux accepter ou refuser une demande d’amitié.
+* Je veux consulter ma liste d’amis, voir leur statut, et entamer une conversation directe.
+* Je veux supprimer un ami si je ne souhaite plus interagir avec lui.
+
+== Communication via serveurs, canaux et messages
+
+=== Serveurs
+
+* Je veux créer un serveur pour regrouper une communauté autour d’un thème.
+* Je veux inviter des amis à rejoindre mon serveur via un lien ou un identifiant.
+* Je veux configurer les rôles et les permissions dans mon serveur.
+
+=== Canaux
+
+* Je veux créer des canaux textuels ou vocaux dans un serveur.
+* Je veux restreindre l’accès à certains canaux selon le rôle de l’utilisateur.
+* Je veux modifier l’ordre et la hiérarchie des canaux.
+
+=== Messages
+
+* Je veux envoyer un message dans un canal auquel j’ai accès.
+* Je veux supprimer ou modifier mes propres messages.
+* Je veux épingler un message important ou y réagir via des émojis.
+* Je veux partager des fichiers dans les canaux.
+
+== Gestion des rôles et permissions
+
+* En tant que `owner`, je veux créer des rôles personnalisés dans mon serveur.
+* En tant que `owner`, je veux déléguer la gestion des rôles à d'autres utilisateurs via un rôle intermédiaire.
+* Je veux attribuer des rôles aux membres de mon serveur selon leurs responsabilités.
+* Je veux restreindre l’accès à certaines actions (création de canal, suppression de message…) selon le rôle.
+
+== Illustration : Diagrammes de cas d’usage
+
+[NOTE]
+====
+Les diagrammes ci-dessous doivent être insérés dans une version ultérieure avec Draw.io ou Mermaid.
+====
+
+* Diagramme : Création de compte (email / Google / Polytech)
+* Diagramme : Invitation d’amis et ajout à un serveur
+* Diagramme : Envoi de message dans un canal privé
+* Diagramme : Gestion des rôles et des permissions dans un serveur
+

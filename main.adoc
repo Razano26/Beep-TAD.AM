@@ -8,5 +8,8 @@ Louis LABEYRIE <labeyrielouis@gmail.com>
 :sectnums:
 :sectnumlevels: 4
 
-
+// Concepts et ADR
 include::concepts-et-adr/00-index.adoc[]
+
+// Vue applicative
+include::vue-applicative/00-index.adoc[]
