@@ -1,0 +1,76 @@
+= Vue logique – Architecture fonctionnelle
+
+== Objectif
+
+Cette section présente le découpage logique de l’application Beep en services ou modules fonctionnels. Elle permet de comprendre comment les responsabilités métier sont distribuées au sein du système, et d’identifier les composants principaux qui interagissent pour délivrer les fonctionnalités aux utilisateurs.
+
+== Services fonctionnels
+
+[cols="1,3", options="header"]
+|===
+| Service
+| Responsabilités
+
+| Authentification
+| Gère l’inscription, la connexion, les sessions, les providers externes (Google, Polytech), les tokens d’accès.
+
+| Gestion des utilisateurs
+| Gère les profils utilisateurs, les avatars, les préférences, la liste d’amis, les relations.
+
+| Serveurs communautaires
+| Gère la création de serveurs, la configuration des rôles, la gestion des membres, les invitations.
+
+| Canaux et communication
+| Gère les canaux (texte, vocal), les permissions par rôle, la hiérarchie des canaux.
+
+| Messagerie
+| Gère l’envoi, la réception, la modification et suppression des messages, ainsi que le partage de fichiers.
+
+| Notifications
+| Gère les alertes push, les notifications in-app, les statuts.
+
+| Recherche
+| Permet de rechercher des utilisateurs, des serveurs, des messages, ou des fichiers.
+
+| Supervision & modération
+| Permet de signaler, masquer ou modérer des contenus, d’archiver ou supprimer des serveurs inactifs.
+
+|===
+
+== Diagramme des composants (Vue simplifiée)
+
+[mermaid]
+----
+graph TD
+    subgraph Utilisateur
+        U1[Application Web/Client]
+    end
+
+    subgraph Backend Beep
+        A[Authentification]
+        B[Utilisateurs]
+        C[Serveurs]
+        D[Canaux]
+        E[Messages]
+        F[Notifications]
+        G[Recherche]
+        H[Modération]
+    end
+
+    U1 --> A
+    U1 --> B
+    U1 --> C
+    U1 --> D
+    U1 --> E
+    U1 --> F
+    U1 --> G
+
+    B --> H
+    E --> H
+----
+
+== Évolutions envisagées
+
+- Ajout d’un service de statistiques et d’analyse
+- Intégration de bots pour automatisation communautaire
+- Service de gestion de contenu multimédia avancé
