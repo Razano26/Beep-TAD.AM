@@ -16,3 +16,6 @@ include::vue-applicative/00-index.adoc[]
 
 // Vue logique
 include::vue_logique/00-index.adoc[]
+
+// Vue technique
+include::vue-technique/00-index.adoc[]

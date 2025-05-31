@@ -1,0 +1,104 @@
+= Intégration des applications UI
+:sectnums:
+:sectnumlevels: 4
+
+== Objectif
+
+Garantir une expérience utilisateur fluide et cohérente, malgré l'architecture distribuée de l’application Beep.
+L’utilisateur ne doit percevoir qu’une seule application homogène.
+
+Cette section décrit l’intégration des composants UI avec les microservices.
+
+== Architecture générale
+
+[mermaid]
+----
+graph TD
+    Client[Frontend Beep (SPA React)]
+    API[API Gateway (Kong)]
+    Auth[Service Authentification]
+    Users[Service Utilisateurs]
+    Servers[Service Serveurs]
+    Channels[Service Canaux]
+    Messages[Service Messagerie]
+    Notifications[Service Notifications]
+    Search[Service Recherche]
+    Streaming[Service WebRTC / Streaming]
+
+    Client --> API
+    API --> Auth
+    API --> Users
+    API --> Servers
+    API --> Channels
+    API --> Messages
+    API --> Notifications
+    API --> Search
+    API --> Streaming
+----
+
+== Approche d’intégration
+
+=== 1. API Gateway unifiée
+
+Toutes les requêtes UI transitent par un point d’entrée unique :
+
+- API Gateway (Kong)
+- Versionnement d'API
+- Uniformisation des erreurs
+- Gestion centralisée de l'authentification (JWT, cookie sécurisé)
+
+Avantage : l'UI n’a pas connaissance de la granularité des microservices.
+
+=== 2. UI monolithique (SPA)
+
+- Application React unique, déployée indépendamment
+- Communication avec l'API Gateway via REST (synchrone) + WebSocket pour le temps réel
+- Gestion du *state* unifiée (React Query / Redux Toolkit)
+
+=== 3. Cas spécifique : WebRTC (conférences vidéo)
+
+Le service de streaming est encapsulé côté frontend :
+
+- API REST pour la création de salle
+- WebSocket pour la signalisation
+- Transport direct WebRTC P2P pour les flux vidéo/audio
+- Authentification des flux WebRTC : token court durée
+
+L'UI masque totalement la nature distribuée de cette brique.
+
+=== 4. UX cohérente
+
+Principes :
+
+- Navigation unifiée (SPA)
+- Comportements temps réel homogènes
+- Feedback utilisateur immédiat
+- Gestion des erreurs centralisée
+
+== Diagramme de séquence - Démarrage d’une visioconférence
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant API_Gateway
+    participant Auth
+    participant Streaming
+
+    Client->>API_Gateway: POST /conferences/start
+    API_Gateway->>Auth: Validate JWT
+    Auth-->>API_Gateway: OK
+    API_Gateway->>Streaming: Create conference room
+    Streaming-->>API_Gateway: Conference token + ICE servers
+    API_Gateway-->>Client: Conference info
+    Client-->>Client: Initiate WebRTC connection
+----
+
+== Conclusion
+
+Cette approche garantit :
+
+- Une UX homogène
+- Une gestion centralisée de la sécurité
+- Une flexibilité pour faire évoluer les microservices de façon transparente pour l'utilisateur
+

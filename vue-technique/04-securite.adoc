@@ -1,0 +1,128 @@
+= Architecture de sécurité
+
+== Objectif
+
+Garantir une plateforme Beep :
+
+- Résiliente aux attaques
+- Conforme aux meilleures pratiques de sécurité
+- Protégeant la confidentialité des utilisateurs
+- Robuste face aux tentatives de compromission interne ou externe
+
+Cette section décrit :
+
+- L'architecture réseau sécurisée
+- La gestion des échanges entre microservices
+- La gestion des identités et des autorisations
+- La politique de gestion des certificats et de chiffrement
+- Le cas d'extension vers les applications mobiles
+
+== Architecture physique et réseau
+
+[mermaid]
+----
+graph TD
+    Internet -->|443 HTTPS| Ingress[Ingress-nginx (DMZ)]
+    Ingress -->|mTLS| svc_gateway[API Gateway]
+
+    subgraph K8s cluster (Talos)
+        svc_gateway -->|mTLS| svc_auth[Auth Service]
+        svc_gateway -->|mTLS| svc_user[User Management]
+        svc_gateway -->|mTLS| svc_server[Server Management]
+        svc_gateway -->|mTLS| svc_channel[Channel Service]
+        svc_gateway -->|mTLS| svc_msg[Messaging Service]
+        svc_gateway -->|mTLS| svc_notif[Notifications Service]
+        svc_gateway -->|mTLS| svc_search[Search Service]
+        svc_gateway -->|mTLS| svc_mod[Moderation Service]
+    end
+
+    Ingress --> Grafana
+    Ingress --> Kibana
+    Ingress -->|443| Keycloak
+----
+
+== DMZ et séparation des zones
+
+- **DMZ Kubernetes** : ingress-nginx exposé en frontal, traffic TLS only
+- API Gateway en première ligne dans le cluster (reverse proxy applicatif)
+- Aucune communication directe entre Internet et les services internes
+- Communication inter-services strictement **mTLS** (mutual TLS) obligatoire
+- Politique **Zero Trust** : chaque service ne peut parler qu'aux services nécessaires (NetworkPolicy K8s)
+
+== Authentification mobile (application native)
+
+[mermaid]
+----
+sequenceDiagram
+    participant Mobile App
+    participant Ingress
+    participant Keycloak
+    participant API Gateway
+    participant Auth Service
+
+    Mobile App->>Ingress: HTTPS /oauth/authorize
+    Ingress->>Keycloak: Redirect OAuth flow
+    Keycloak-->>Mobile App: Auth code
+    Mobile App->>Ingress: HTTPS /oauth/token
+    Ingress->>Keycloak: Exchange code for token
+    Keycloak-->>Mobile App: JWT / Refresh token
+
+    Mobile App->>Ingress: HTTPS /api/...
+    Ingress->>API Gateway: Forward with Bearer JWT
+    API Gateway->>Auth Service: Validate JWT
+----
+
+- Application mobile utilise **OIDC** avec **PKCE flow** recommandé
+- Communication 100% chiffrée via HTTPS
+- Le JWT obtenu est utilisé pour toutes les requêtes API
+
+== Politique de chiffrement
+
+- **TLS 1.3** activé sur tous les flux externes et internes
+- **Cert-manager** déploie les certificats :
+  - Public cert (Ingress) → ACME / Let's Encrypt ou CA entreprise
+  - Interne (mTLS) → Issuer interne + rotation automatique (Vault ou cert-manager interne)
+- Secrets stockés :
+  - Secrets statiques → SealedSecrets (sealed-secrets controller)
+  - Secrets dynamiques → Vault (ex : DB credentials, tokens)
+
+== Cryptographie choisie
+
+- HTTPS → TLS 1.3
+- mTLS → TLS 1.3 avec mutual auth
+- JWT → RS256 (clé privée signée par Keycloak, clé publique diffusée)
+- Chiffrement des données au repos :
+  - PostgreSQL : **data-at-rest encryption**
+  - ElasticSearch : **Encrypted index + encrypted communication**
+  - Redis : TLS et optional in-memory encryption
+
+== Sécurisation inter-microservices
+
+- Authentification forte inter-services via mTLS
+- API Gateway valide :
+  - JWT utilisateur
+  - Scope et claims pour les autorisations
+- Politique de droit par service : principe du **moindre privilège**
+- Politique réseau :
+  - NetworkPolicy K8s
+  - Séparation namespace sensible / non sensible
+
+== Monitoring de la sécurité
+
+- Logs de sécurité (auth, anomalies) forwardés vers ElasticSearch (cf. Observabilité)
+- Alerting automatique Grafana / SOC
+- Monitoring des certificats (période de validité, renouvellement)
+
+== Conclusion
+
+La politique de sécurité Beep repose sur les principes suivants :
+
+- Isolation réseau stricte
+- Chiffrement systématique des flux
+- Gestion forte des identités et des autorisations
+- Rotation automatique des secrets
+- Traçabilité complète des événements de sécurité
+- Résilience face aux menaces externes et internes
+
+Cela permet de garantir une architecture **secure by design** adaptée aux exigences de production.
+

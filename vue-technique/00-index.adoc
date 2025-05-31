@@ -1,0 +1,7 @@
+include::01-architecture-technique.adoc[leveloffset=+1]
+include::02-authentification.adoc[leveloffset=+1]
+include::03-observabilite-supervision.adoc[leveloffset=+1]
+include::04-securite.adoc[leveloffset=+1]
+include::05-recherche.adoc[leveloffset=+1]
+include::06-integration-ui.adoc[leveloffset=+1]
+include::07-gestion-production.adoc[leveloffset=+1]

@@ -1,0 +1,148 @@
+= Gestion de l’authentification et du contrôle d’accès
+
+== Objectif
+
+Cette section décrit le système d’authentification et d’autorisation de Beep, dans le contexte de l’architecture microservices.
+
+Elle précise :
+
+- L’intégration d’un serveur OIDC
+- Les flux d’authentification
+- La gestion des rôles et permissions
+- Les implications sur les interactions inter-services
+
+== Architecture de l’authentification
+
+Le service d’authentification repose sur **Keycloak** configuré en mode OIDC provider. Il gère :
+
+- L’authentification des comptes Beep natifs (email / mot de passe)
+- L’intégration des comptes Google (OIDC externe)
+- L’intégration des comptes Polytech (OIDC sur LDAP Polytech)
+
+== Architecture de déploiement
+
+[mermaid]
+----
+graph TD
+    subgraph Cluster K8s [Talos K8s Cluster]
+        nginx[ingress-nginx]
+        keycloak[Keycloak (OIDC)]
+        svc_auth[Auth Service]
+        svc_user[User Management]
+        fe[Frontend (Web / Mobile)]
+    end
+
+    fe --> nginx
+    nginx --> svc_auth
+    svc_auth --> keycloak
+    keycloak --> svc_user
+----
+
+== Flux d’authentification principaux
+
+=== Création d’un compte Beep (email / mot de passe)
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Auth
+    participant Keycloak
+    participant User
+
+    Client->>Auth: POST /signup (email, password)
+    Auth->>Keycloak: Create user (OIDC)
+    Keycloak-->>Auth: User created
+    Auth->>User: Create profile
+    User-->>Auth: OK
+    Auth-->>Client: Success
+----
+
+=== Création d’un compte Beep via Polytech (LDAP via OIDC)
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Keycloak
+    participant LDAP
+    participant User
+
+    Client->>Keycloak: Start OIDC flow (Polytech)
+    Keycloak->>LDAP: Authenticate user
+    LDAP-->>Keycloak: OK
+    Keycloak->>User: Create profile if first login
+    User-->>Keycloak: OK
+    Keycloak-->>Client: Authenticated
+----
+
+=== Création d’un compte Beep via Google
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Keycloak
+    participant GoogleOIDC
+    participant User
+
+    Client->>Keycloak: Start OIDC flow (Google)
+    Keycloak->>GoogleOIDC: Authenticate user
+    GoogleOIDC-->>Keycloak: OK
+    Keycloak->>User: Create profile if first login
+    User-->>Keycloak: OK
+    Keycloak-->>Client: Authenticated
+----
+
+=== Connexion d’un utilisateur
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Keycloak
+
+    Client->>Keycloak: POST /auth/login
+    Keycloak-->>Client: accessToken + refreshToken
+----
+
+=== Association d’un compte Google à un compte Beep existant
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Keycloak
+    participant GoogleOIDC
+
+    Client->>Keycloak: Start "link account" flow
+    Keycloak->>GoogleOIDC: Authenticate
+    GoogleOIDC-->>Keycloak: OK
+    Keycloak-->>Client: Account linked
+----
+
+== Gestion des rôles et permissions
+
+La plateforme distingue :
+
+- **Rôles globaux** (gérés dans Keycloak via OIDC claims)
+  - `user`
+  - `admin`
+
+- **Rôles locaux** (par serveur), gérés au niveau du service `Server Management` et du service `Channel & Communication`
+  - `owner`, `default`, + rôles personnalisés
+  - Ces rôles sont injectés dans les tokens JWT via enrichissement ou via introspection sur les services applicatifs.
+
+== Contrôle d’accès
+
+- Tous les appels REST des microservices sont protégés par **JWT (accessToken)**.
+- Les services vérifient systématiquement le JWT via introspection avec Keycloak.
+- Les autorisations locales (serveur, canal) sont gérées par les services métiers.
+
+== Conclusion
+
+Ce système garantit :
+
+- Une fédération simple des identités (Google, Polytech)
+- Une séparation claire entre **authentification** (Keycloak) et **autorisations métier** (services applicatifs)
+- Une extensibilité pour de futurs providers d’identité (ex : SAML entreprise)

@@ -1,0 +1,154 @@
+= Architecture technique cible
+
+== Objectif
+
+Cette section décrit l’architecture technique cible de la plateforme **Beep**, dans sa version microservices, en détaillant :
+
+- Le découpage fonctionnel en microservices
+- Les grands principes d’intégration
+- L’architecture de déploiement cible
+- Les modes de communication inter-services
+
+== Principes directeurs
+
+L’évolution vers une architecture microservices répond aux besoins suivants :
+
+- **Modularité** : permettre des évolutions indépendantes des différents domaines fonctionnels
+- **Scalabilité ciblée** : ajuster le dimensionnement par domaine de charge
+- **Résilience** : limiter les effets de bord d’une défaillance sur le système global
+- **Observabilité** : améliorer le suivi des flux et des comportements
+- **Sécurité** : cloisonner les responsabilités et durcir les communications internes
+
+== Découpage en microservices
+
+Le découpage est basé sur les **quartiers fonctionnels** identifiés dans la vue logique :
+
+[mermaid]
+----
+graph TD
+    A[Auth Service]
+    B[User Management Service]
+    C[Server Management Service]
+    D[Channel & Communication Service]
+    E[Messaging Service]
+    F[Notification Service]
+    G[Search Service]
+    H[Moderation & Supervision Service]
+    I[Media Management Service]
+
+    subgraph Frontend
+        FE[Web Client / Mobile App]
+    end
+
+    FE --> A
+    FE --> B
+    FE --> C
+    FE --> D
+    FE --> E
+    FE --> F
+    FE --> G
+
+    B --> H
+    E --> H
+    E --> F
+    B --> G
+    E --> G
+    D --> E
+    C --> D
+----
+
+**Services principaux** :
+
+| Service | Rôle principal |
+|---------|----------------|
+| Auth Service | Authentification OIDC (Keycloak), gestion des tokens |
+| User Management | Gestion des profils utilisateurs, relations |
+| Server Management | Gestion des serveurs communautaires |
+| Channel & Communication | Gestion des canaux, permissions |
+| Messaging | Gestion des messages (temps réel, stockage) |
+| Notification | Notification en temps réel (WebSocket / SSE) |
+| Search | Indexation et recherche full-text |
+| Moderation & Supervision | Modération des contenus, supervision globale |
+| Media Management | Stockage et gestion des fichiers |
+
+== Architecture de déploiement cible
+
+L’environnement de production repose sur :
+
+- Un cluster Kubernetes **Talos** sur infrastructure **Proxmox** (baremetal / VM)
+- Un **ingress-nginx** en frontal
+- Un **cert-manager** pour la gestion des certificats
+- Un système de **Secrets Management** (Vault ou SealedSecrets)
+- Un service **Redis** partagé pour les caches (sessions, présence)
+- Une stack **ElasticSearch** dédiée à la recherche
+- Des bases **PostgreSQL** dédiées par service
+
+[mermaid]
+----
+graph TD
+    subgraph Cluster K8s [Talos K8s Cluster]
+        nginx[ingress-nginx]
+        keycloak[Keycloak (OIDC)]
+        sealed[Vault / SealedSecrets]
+        redis[Redis]
+        elastic[ElasticSearch]
+        postgres_user[(Postgres User)]
+        postgres_server[(Postgres Server)]
+        postgres_message[(Postgres Messaging)]
+        postgres_moderation[(Postgres Moderation)]
+        fe[Frontend (Web / Mobile)]
+
+        svc_auth[Auth Service]
+        svc_user[User Management]
+        svc_server[Server Management]
+        svc_channel[Channel & Communication]
+        svc_msg[Messaging]
+        svc_notif[Notification]
+        svc_search[Search]
+        svc_moderation[Moderation & Supervision]
+        svc_media[Media Management]
+    end
+
+    fe --> nginx
+    nginx --> svc_auth
+    nginx --> svc_user
+    nginx --> svc_server
+    nginx --> svc_channel
+    nginx --> svc_msg
+    nginx --> svc_notif
+    nginx --> svc_search
+
+    svc_auth --> keycloak
+    svc_user --> postgres_user
+    svc_server --> postgres_server
+    svc_msg --> postgres_message
+    svc_moderation --> postgres_moderation
+    svc_notif --> redis
+    svc_search --> elastic
+    svc_channel --> svc_msg
+----
+
+== Modes de communication inter-services
+
+- **Appels synchrones REST** pour les interactions classiques entre services
+- **Redis Pub/Sub ou WebSocket events** pour les notifications en temps réel
+- **Aucun message broker (Kafka, RabbitMQ, etc.)** en conformité avec les contraintes de l’exercice
+- Les flux asynchrones de supervision et de notification se font via des mécanismes légers intégrés à Redis ou via des endpoints REST internes.
+
+== Conclusion
+
+Cette architecture cible garantit un **compromis** entre :
+
+- Respect des **contraintes imposées** (pas de message broker, CQRS ou Event Sourcing)
+- Respect des bonnes pratiques de microservices (découplage, scalabilité)
+- Cohérence avec le modèle fonctionnel de Beep
+- Cohérence avec l’infrastructure Talos sur Proxmox retenue
+
+Les sections suivantes détailleront les aspects spécifiques :
+
+- Gestion de l’authentification (OIDC)
+- Supervision et observabilité
+- Sécurité inter-services
+- Intégration UI
+- Architecture de recherche
+- Plan de gestion de la production

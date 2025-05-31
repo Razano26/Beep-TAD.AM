@@ -1,0 +1,63 @@
+= Gestion de la production et exploitation
+:sectnums:
+:sectnumlevels: 4
+
+== Objectifs
+
+Définir les pratiques de mise en production, de supervision et d’exploitation pour garantir un service robuste, fiable et maintenable.
+
+== Pipeline CI/CD
+
+- Outil : GitLab CI
+- Intégration continue automatisée
+- Build images OCI
+- Tests automatisés (unitaires, intégration, sécurité)
+- Publication dans registre sécurisé
+- Déploiement progressif via GitOps (ArgoCD)
+
+== Stratégie de déploiement
+
+- Déploiement par environnement :
+  - dev → staging → production
+- Progressive Delivery :
+  - Canary Release
+  - Blue/Green Deployment (si besoin)
+- Rollback automatisé
+- Contrôle de version fine (tags Git / images)
+
+== Supervision post-production
+
+- Stack de supervision :
+  - Prometheus + Alertmanager
+  - Grafana (tableaux de bord)
+  - Loki pour centralisation des logs
+  - Tracing (Jaeger/OpenTelemetry)
+
+- Intégration SOC :
+  - Logs de sécurité vers SIEM
+  - Audit Trail (API, authentifications, actions critiques)
+
+== Gestion des incidents
+
+- Monitoring proactif
+- Playbooks d’intervention
+- Notification des équipes
+- Mise en place de SLOs / SLIs
+- Post-mortem systématique
+
+== Sauvegarde et réversibilité
+
+- Sauvegarde régulière des bases
+- Sauvegarde chiffrée et externalisée
+- Tests de restauration périodiques
+- Réversibilité des déploiements :
+  - possibilité de rollback à N versions
+  - documentation des dépendances
+
+== Plan d’évolution continue
+
+- Revue régulière de l’architecture
+- Tests de charge / scalabilité
+- Veille technologique
+- Amélioration continue des processus
+

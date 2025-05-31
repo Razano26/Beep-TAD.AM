@@ -1,0 +1,168 @@
+= Observabilité et supervision
+
+== Objectif
+
+Cette section décrit l’architecture d’observabilité et de supervision intégrée à la plateforme Beep.
+
+Elle vise à :
+
+- Garantir la traçabilité complète des flux utilisateurs
+- Assurer une supervision temps réel des services
+- Faciliter l’investigation en cas d’incident
+- Répondre aux exigences de sécurité et de conformité
+
+== Architecture globale
+
+L’architecture de supervision repose sur les principes suivants :
+
+- **Centralisation des logs**
+- **Traces distribuées**
+- **Métriques techniques et métier**
+- **Supervision des flux critiques**
+- **Interfaçage avec un SOC entreprise**
+
+== Déploiement cible
+
+[mermaid]
+----
+graph TD
+    subgraph Cluster K8s [Talos K8s Cluster]
+        nginx[ingress-nginx]
+        svc_auth[Auth Service]
+        svc_user[User Management]
+        svc_server[Server Management]
+        svc_channel[Channel & Communication]
+        svc_msg[Messaging]
+        svc_notif[Notifications]
+        svc_search[Search Engine]
+        svc_mod[Moderation]
+        fe[Frontend (Web / Mobile)]
+
+        loki[Grafana Loki]
+        prom[Prometheus]
+        grafana[Grafana]
+        tempo[Grafana Tempo]
+        es[ElasticSearch]
+    end
+
+    svc_auth --> loki
+    svc_user --> loki
+    svc_server --> loki
+    svc_channel --> loki
+    svc_msg --> loki
+    svc_notif --> loki
+    svc_search --> loki
+    svc_mod --> loki
+
+    svc_auth --> tempo
+    svc_user --> tempo
+    svc_server --> tempo
+    svc_channel --> tempo
+    svc_msg --> tempo
+    svc_notif --> tempo
+    svc_search --> tempo
+    svc_mod --> tempo
+
+    svc_auth --> prom
+    svc_user --> prom
+    svc_server --> prom
+    svc_channel --> prom
+    svc_msg --> prom
+    svc_notif --> prom
+    svc_search --> prom
+    svc_mod --> prom
+
+    grafana --> loki
+    grafana --> prom
+    grafana --> tempo
+    grafana --> es
+----
+
+== Journalisation des requêtes (logs)
+
+- Tous les services exposent des logs structurés (JSON) vers **Grafana Loki**
+- Enrichissement des logs avec :
+  - identifiants de trace (`trace_id`, `span_id`)
+  - identifiants utilisateur
+  - identifiants serveur et canal
+  - contextes de sécurité
+- Conservation : 15 jours en chaud, 6 mois en archive (via ElasticSearch)
+
+== Traces distribuées
+
+- Tous les appels REST inter-services sont traçés via **OpenTelemetry**
+- Backend de traçabilité : **Grafana Tempo**
+- Corrélation frontend → backend → microservices
+- Suivi des latences et points de blocage
+- Exemple : latence sur envoi de message, latence sur requêtes de recherche
+
+== Supervision technique
+
+- **Prometheus** scrape les métriques de tous les services
+- Export de métriques métier :
+  - nombre de serveurs créés
+  - nombre de messages envoyés
+  - nombre d’invitations acceptées
+  - taux d’erreurs par endpoint
+- Dashboards Grafana :
+  - Vue “Global Health”
+  - Vue “User Experience” (temps réponse, taux de succès)
+  - Vue “Message Pipeline”
+
+== Suivi d’une requête utilisateur : exemple
+
+Exemple : envoi d’un message
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Gateway
+    participant Auth
+    participant Messaging
+    participant Notifications
+    participant Loki
+    participant Tempo
+    participant Prometheus
+
+    Client->>Gateway: POST /channels/:id/messages
+    Gateway->>Auth: Validate JWT
+    Gateway->>Messaging: POST /messages
+    Messaging->>Messaging: Store message
+    Messaging->>Notifications: Emit new_message
+
+    Note over Gateway,Messaging: All spans traced (trace_id propagated)
+
+    Messaging->>Loki: Log structured (with trace_id)
+    Messaging->>Prometheus: Increment message counter
+    Messaging->>Tempo: Send spans
+    Notifications->>Loki: Log structured
+    Notifications->>Tempo: Send spans
+----
+
+== Logs de sécurité (Security-based logs)
+
+- Audit des événements suivants :
+  - Authentification réussie / échouée
+  - Tentatives d’attaque (brute-force, injection)
+  - Changements de rôles / permissions
+  - Suppressions critiques (serveur, messages)
+- Ces logs sont systématiquement forwardés vers **ElasticSearch** pour supervision SOC
+
+== Intégration SOC
+
+- ElasticSearch interfacé avec le SIEM entreprise
+- Export via fluent-bit ou Logstash
+- Dashboards de corrélation :
+  - Sessions anormales
+  - Suspicious IPs
+  - Patterns d’attaque
+
+== Conclusion
+
+Ce dispositif garantit :
+
+- Une parfaite **visibilité** des flux applicatifs
+- Une capacité de **détection rapide** des incidents
+- Une traçabilité nécessaire pour les audits réglementaires
+- Une supervision proactive de la plateforme Beep

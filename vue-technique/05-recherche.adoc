@@ -1,0 +1,145 @@
+= Moteur de recherche – Intégration fonctionnelle et technique
+
+== Objectif
+
+Cette section présente l’architecture et l’intégration d’un moteur de recherche dans l’application Beep.
+
+Les objectifs principaux sont :
+
+- Offrir une recherche textuelle performante sur les messages, fichiers, serveurs et utilisateurs.
+- Permettre un filtrage contextuel précis.
+- Garantir une latence faible et une scalabilité adéquate.
+
+== Architecture technique
+
+[mermaid]
+----
+graph LR
+    UI[Interface utilisateur] -->|REST| API_Gateway
+    API_Gateway -->|REST| Search_Service
+    Search_Service -->|REST| ElasticSearch
+    Messaging_Service -->|REST| Search_Service (indexation)
+    User_Service -->|REST| Search_Service (indexation)
+    Files_Service -->|REST| Search_Service (indexation)
+----
+
+Les échanges sont réalisés via API REST.
+Le moteur de recherche est encapsulé dans un service dédié pour garantir la cohérence et faciliter la maintenance.
+
+== Stack technique proposée
+
+| Composant | Choix recommandé | Justification |
+|-----------|-----------------|----------------|
+| Moteur de recherche | ElasticSearch OSS | Solution mature, performante et extensible |
+| API de recherche | Service microservice `search` | Centralisation de la logique d’indexation et des contrôles d’accès |
+| Interface utilisateur | React / Next.js | Intégration fluide avec l’expérience Beep existante |
+
+== Indexation
+
+=== Messages
+
+- `messageId`
+- `authorId`
+- `authorUsername`
+- `channelId`
+- `serverId`
+- `content` (analyzé full-text)
+- `timestamp`
+
+=== Fichiers
+
+- `fileId`
+- `fileName`
+- `fileType`
+- `channelId`
+- `serverId`
+- `uploaderId`
+- `timestamp`
+
+=== Utilisateurs
+
+- `userId`
+- `username`
+- `email` (partiellement selon les droits)
+- `displayName`
+
+=== Serveurs
+
+- `serverId`
+- `serverName`
+- `description`
+
+== Processus d’indexation
+
+[mermaid]
+----
+sequenceDiagram
+    participant Messaging_Service
+    participant Search_Service
+    participant ElasticSearch
+
+    Messaging_Service->>Search_Service: POST /index/message { payload message }
+    Search_Service->>ElasticSearch: Indexation du document
+    ElasticSearch-->>Search_Service: Confirmation
+----
+
+== Processus de recherche
+
+[mermaid]
+----
+sequenceDiagram
+    participant UI
+    participant API_Gateway
+    participant Search_Service
+    participant ElasticSearch
+
+    UI->>API_Gateway: GET /search?q=terme&filters=...
+    API_Gateway->>Search_Service: Requête de recherche
+    Search_Service->>ElasticSearch: Exécution de la requête
+    ElasticSearch-->>Search_Service: Résultats
+    Search_Service-->>API_Gateway: Résultats
+    API_Gateway-->>UI: Résultats
+----
+
+== Interface utilisateur
+
+La recherche est accessible via un champ unique intégré à l’interface principale de Beep.
+
+Les résultats sont segmentés par type :
+
+- Messages
+- Fichiers
+- Utilisateurs
+- Serveurs
+
+Des filtres permettent de restreindre la recherche par :
+
+- Serveur
+- Canal
+- Type de contenu
+- Date
+
+== Sécurité et contrôle d’accès
+
+Le service de recherche applique les règles de visibilité suivantes :
+
+- Un utilisateur ne voit que les messages et les fichiers accessibles selon ses permissions.
+- Les droits sont vérifiés par le service `search` à partir des informations contenues dans le jeton JWT de l’utilisateur.
+
+== Conclusion
+
+Cette solution permet d’intégrer un moteur de recherche :
+
+- Performant et extensible.
+- Sécurisé et respectueux des permissions applicatives.
+- Compatible avec l’architecture cible de Beep.
+
+---
+
+Fin de section.
+
+---
+
+Si tu es d’accord, je passe maintenant à la dernière section obligatoire : **UI / intégration applicative**.
+Prêt pour la suite ?
+Je te prépare directement la structure Asciidoc correspondante, toujours dans le même style professionnel.
