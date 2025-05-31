@@ -1,25 +1,30 @@
 = TAD - Beep
 Louis LABEYRIE <labeyrielouis@gmail.com>
-
+:title-page: true
+:description: Architecture technique, logique et applicative de la plateforme Beep
 :doctype: book
-:toc: left
-:toclevels: 3
+:toc:
+:toclevels: 2
 :icons: font
 :sectnums:
 :sectnumlevels: 4
 
 // Concepts et ADR
 <<<
+[%notitle]
 include::concepts-et-adr/00-index.adoc[leveloffset=+1]
 
 // Vue applicative
 <<<
+[%notitle]
 include::vue-applicative/00-index.adoc[leveloffset=+1]
 
 // Vue logique
 <<<
+[%notitle]
 include::vue_logique/00-index.adoc[leveloffset=+1]
 
 // Vue technique
 <<<
+[%notitle]
 include::vue-technique/00-index.adoc[leveloffset=+1]

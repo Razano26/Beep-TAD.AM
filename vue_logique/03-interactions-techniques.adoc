@@ -54,8 +54,8 @@ graph LR
     Recherche -->|REST/gRPC| Authorization
     SupervisionModération -->|REST/gRPC| Authorization
 
-    Messagerie -->|Event (Redis Pub/Sub)| Notifications
-    Messagerie -->|Event (Redis Pub/Sub)| SupervisionModération
+    Messagerie -->|Event Redis Pub/Sub| Notifications
+    Messagerie -->|Event Redis Pub/Sub| SupervisionModération
     Notifications -->|Push WebSocket| Clients
 ----
 
