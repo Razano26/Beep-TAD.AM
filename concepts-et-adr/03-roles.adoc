@@ -71,9 +71,6 @@ Cette approche permet de :
 
 | `role-manager`
 | Peut créer de nouveaux rôles et les attribuer à d’autres membres
-
-| `content-manager`
-| Peut publier des messages épinglés, gérer les fichiers du serveur
 |===
 
 == Portée et cumul
@@ -82,8 +79,3 @@ Un utilisateur peut :
 - Avoir un rôle global (`user` ou `admin`)
 - Être membre de plusieurs serveurs avec des rôles locaux différents
 - Cumuler plusieurs rôles locaux si la configuration du serveur le permet
-
-== Représentation conceptuelle
-
-// TODO: Add a diagram of the roles
-

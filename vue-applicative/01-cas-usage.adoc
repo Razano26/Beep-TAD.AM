@@ -8,13 +8,14 @@ Cette section décrit les principales fonctionnalités accessibles aux utilisate
 
 === En tant que visiteur (non connecté)
 * Je veux créer un compte Beep avec une adresse e-mail et un mot de passe, afin d’accéder à l’application.
-* Je veux créer un compte Beep via mon compte Google ou mon compte Polytech, afin de simplifier la connexion.
+* Je veux créer un compte Beep via mon compte Google ou mon compte Polytech (LDAP), afin de simplifier la connexion.
 * Je veux me connecter à mon compte Beep, quel que soit le mode de création initial.
-* Je veux associer mon compte Google à mon compte Beep existant pour faciliter les futures connexions.
 
 === En tant qu’utilisateur connecté
 * Je veux pouvoir modifier mes informations personnelles (email, mot de passe, avatar…).
+* Je veux associer mon compte Google ou Polytech (LDAP) à mon compte Beep existant pour faciliter les futures connexions.
 * Je veux me déconnecter manuellement ou automatiquement après inactivité.
+* Je veux pouvoir supprimer mon compte.
 
 == Gestion des amis et invitations
 
@@ -27,9 +28,10 @@ Cette section décrit les principales fonctionnalités accessibles aux utilisate
 
 === Serveurs
 
-* Je veux créer un serveur pour regrouper une communauté autour d’un thème.
+* Je veux créer un serveur pour regrouper une communauté.
 * Je veux inviter des amis à rejoindre mon serveur via un lien ou un identifiant.
 * Je veux configurer les rôles et les permissions dans mon serveur.
+* Je veux pouvoir quitter un serveur.
 
 === Canaux
 
@@ -50,11 +52,16 @@ Cette section décrit les principales fonctionnalités accessibles aux utilisate
 * En tant que `owner`, je veux déléguer la gestion des rôles à d'autres utilisateurs via un rôle intermédiaire.
 * Je veux attribuer des rôles aux membres de mon serveur selon leurs responsabilités.
 * Je veux restreindre l'accès à certaines actions (création de canal, suppression de message…) selon le rôle.
+* Je veux pouvoir supprimer un rôle.
+* Je veux pouvoir modifier un rôle.
+* En tant que `owner`, je veux pouvoir supprimer un serveur.
 
 == Notifications et alertes
 
 * Je veux recevoir une notification en temps réel lorsqu’un ami m’envoie un message.
-* Je veux être notifié lorsqu’on m’invite à rejoindre un serveur.
+* Je veux recevoir une notification lorsque je reçois une demande d’amitié.
+* Je veux recevoir une notification lorsqu’on m’invite à rejoindre un serveur.
+* Je veux recevoir une notification lorsqu’un message est épinglé.
 * Je veux pouvoir activer ou désactiver certaines notifications (push ou in-app) dans mes préférences.
 
 == Recherche de contenu
@@ -67,7 +74,7 @@ Cette section décrit les principales fonctionnalités accessibles aux utilisate
 == Contraintes fonctionnelles
 
 === Performance et latence
-* Le temps de propagation d'un message entre l'émetteur et les destinataires doit être inférieur à 500ms.
+* Le temps de propagation d'un message entre l'émetteur et les destinataires doit être inférieur à 500ms pour des conditions normales de connexion.
 * Le temps de chargement initial de l'application doit être inférieur à 2 secondes.
 * La synchronisation des messages doit être quasi-instantanée (moins de 100ms) entre les différents clients connectés.
 
@@ -96,4 +103,3 @@ Les diagrammes ci-dessous doivent être insérés dans une version ultérieure a
 * Diagramme : Invitation d’amis et ajout à un serveur
 * Diagramme : Envoi de message dans un canal privé
 * Diagramme : Gestion des rôles et des permissions dans un serveur
-

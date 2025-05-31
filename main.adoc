@@ -9,13 +9,17 @@ Louis LABEYRIE <labeyrielouis@gmail.com>
 :sectnumlevels: 4
 
 // Concepts et ADR
+<<<
 include::concepts-et-adr/00-index.adoc[leveloffset=+1]
 
 // Vue applicative
+<<<
 include::vue-applicative/00-index.adoc[leveloffset=+1]
 
 // Vue logique
+<<<
 include::vue_logique/00-index.adoc[leveloffset=+1]
 
 // Vue technique
+<<<
 include::vue-technique/00-index.adoc[leveloffset=+1]
