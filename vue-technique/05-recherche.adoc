@@ -1,145 +1,149 @@
 = Moteur de recherche – Intégration fonctionnelle et technique
 
-== Objectif
+== Objectifs
 
-Cette section présente l’architecture et l’intégration d’un moteur de recherche dans l’application Beep.
+Dans une messagerie temps réel comme Beep, la capacité de recherche constitue un levier clé de l’expérience utilisateur.
 
-Les objectifs principaux sont :
+Le moteur de recherche vise à :
 
-- Offrir une recherche textuelle performante sur les messages, fichiers, serveurs et utilisateurs.
-- Permettre un filtrage contextuel précis.
-- Garantir une latence faible et une scalabilité adéquate.
+- permettre une **recherche textuelle rapide et précise** sur les messages, fichiers, utilisateurs et serveurs,
+- fournir un **filtrage contextuel** (par serveur, canal, type de contenu),
+- garantir une **latence minimale** même en cas de montée en charge,
+- respecter les **permissions d’accès** des utilisateurs.
+
+Cette section présente l’architecture retenue pour cette brique fonctionnelle.
 
 == Architecture technique
+
+Le moteur de recherche est conçu comme un **service dédié** de l’architecture microservices.
 
 [mermaid]
 ----
 graph LR
-    UI[Interface utilisateur] -->|REST| API_Gateway
-    API_Gateway -->|REST| Search_Service
-    Search_Service -->|REST| ElasticSearch
-    Messaging_Service -->|REST| Search_Service (indexation)
-    User_Service -->|REST| Search_Service (indexation)
-    Files_Service -->|REST| Search_Service (indexation)
+    UI[Interface utilisateur (React SPA)]
+    API[API Gateway (Istio Ingress)]
+    SearchService[Search Service (microservice)]
+    Elastic[ElasticSearch Cluster]
+    Messaging[Messaging Service]
+    Users[User Management]
+    Files[Media Management]
+
+    UI -->|REST| API
+    API -->|REST| SearchService
+    SearchService -->|REST| Elastic
+
+    Messaging -->|Indexation| SearchService
+    Users -->|Indexation| SearchService
+    Files -->|Indexation| SearchService
 ----
 
-Les échanges sont réalisés via API REST.
-Le moteur de recherche est encapsulé dans un service dédié pour garantir la cohérence et faciliter la maintenance.
+Le service `Search` encapsule l’accès à ElasticSearch, et centralise :
 
-== Stack technique proposée
+- la logique d’indexation,
+- la gestion des droits,
+- l’interface de recherche pour les clients frontaux.
 
-| Composant | Choix recommandé | Justification |
-|-----------|-----------------|----------------|
-| Moteur de recherche | ElasticSearch OSS | Solution mature, performante et extensible |
-| API de recherche | Service microservice `search` | Centralisation de la logique d’indexation et des contrôles d’accès |
-| Interface utilisateur | React / Next.js | Intégration fluide avec l’expérience Beep existante |
+Cela garantit l’indépendance vis-à-vis du moteur sous-jacent et facilite son évolution.
 
-== Indexation
+== Stack technique retenue
 
-=== Messages
-
-- `messageId`
-- `authorId`
-- `authorUsername`
-- `channelId`
-- `serverId`
-- `content` (analyzé full-text)
-- `timestamp`
-
-=== Fichiers
-
-- `fileId`
-- `fileName`
-- `fileType`
-- `channelId`
-- `serverId`
-- `uploaderId`
-- `timestamp`
-
-=== Utilisateurs
-
-- `userId`
-- `username`
-- `email` (partiellement selon les droits)
-- `displayName`
-
-=== Serveurs
-
-- `serverId`
-- `serverName`
-- `description`
+| Composant | Technologie | Justification |
+|-----------|-------------|---------------|
+| Moteur de recherche | ElasticSearch OSS | Maturité, performance, richesse fonctionnelle |
+| Service API | Search Service (Go / NestJS) | API dédiée, contrôle d’accès centralisé |
+| Frontend | React SPA | Intégration fluide à l’expérience utilisateur Beep |
+| Communication | REST | Simplicité, compatibilité multi-clients |
 
 == Processus d’indexation
+
+Les services métiers (messagerie, utilisateurs, fichiers) publient les événements métier pertinents vers le service `Search`, via des appels REST ou des hooks.
 
 [mermaid]
 ----
 sequenceDiagram
-    participant Messaging_Service
-    participant Search_Service
+    participant Messaging
+    participant SearchService
     participant ElasticSearch
 
-    Messaging_Service->>Search_Service: POST /index/message { payload message }
-    Search_Service->>ElasticSearch: Indexation du document
-    ElasticSearch-->>Search_Service: Confirmation
+    Messaging->>SearchService: POST /index/message { payload }
+    SearchService->>ElasticSearch: Indexation du document
+    ElasticSearch-->>SearchService: OK
 ----
 
+Chaque type d’objet dispose de son propre index :
+
+- **Messages** : contenu, métadonnées (auteur, canal, serveur, timestamp)
+- **Fichiers** : nom, type, uploader, contexte de partage
+- **Utilisateurs** : username, displayName, email partiel (si autorisé)
+- **Serveurs** : nom, description
+
+L’indexation est **quasi temps réel**, pour garantir une fraîcheur optimale des résultats.
+
 == Processus de recherche
+
+Le client frontal interagit avec le moteur de recherche via l’API Gateway.
 
 [mermaid]
 ----
 sequenceDiagram
     participant UI
     participant API_Gateway
-    participant Search_Service
+    participant SearchService
     participant ElasticSearch
 
-    UI->>API_Gateway: GET /search?q=terme&filters=...
-    API_Gateway->>Search_Service: Requête de recherche
-    Search_Service->>ElasticSearch: Exécution de la requête
-    ElasticSearch-->>Search_Service: Résultats
-    Search_Service-->>API_Gateway: Résultats
-    API_Gateway-->>UI: Résultats
+    UI->>API_Gateway: GET /search?q=term&filters=...
+    API_Gateway->>SearchService: Forward request
+    SearchService->>ElasticSearch: Search query
+    ElasticSearch-->>SearchService: Results
+    SearchService-->>API_Gateway: Results
+    API_Gateway-->>UI: Results
 ----
 
-== Interface utilisateur
+Le service `Search` :
 
-La recherche est accessible via un champ unique intégré à l’interface principale de Beep.
+- enrichit les requêtes avec le **contexte utilisateur** (scope JWT),
+- applique des **filtres d’autorisation** (ex : canaux accessibles),
+- formate les résultats pour une présentation unifiée.
 
-Les résultats sont segmentés par type :
+== UX et intégration UI
 
-- Messages
-- Fichiers
-- Utilisateurs
-- Serveurs
+La recherche est intégrée en **composant transverse** dans l’interface Beep :
 
-Des filtres permettent de restreindre la recherche par :
+- champ unique de recherche,
+- suggestions temps réel (typeahead),
+- affichage des résultats segmenté par type (messages, fichiers, utilisateurs, serveurs),
+- filtres avancés (serveur, canal, date, type de contenu).
 
-- Serveur
-- Canal
-- Type de contenu
-- Date
+Cela garantit une UX cohérente, sans exposition des détails techniques de l’architecture.
 
-== Sécurité et contrôle d’accès
+== Contrôle d’accès
 
-Le service de recherche applique les règles de visibilité suivantes :
+Le moteur de recherche respecte strictement les **permissions d’accès** :
 
-- Un utilisateur ne voit que les messages et les fichiers accessibles selon ses permissions.
-- Les droits sont vérifiés par le service `search` à partir des informations contenues dans le jeton JWT de l’utilisateur.
+- Seuls les contenus visibles par l’utilisateur connecté sont recherchables.
+- Les droits sont validés par le service `Search`, en exploitant les claims JWT et via des appels à `Permify` au besoin.
+
+Ainsi, un utilisateur ne pourra jamais voir des messages postés dans un canal auquel il n’a pas accès.
+
+== Scalabilité et performances
+
+ElasticSearch permet une montée en charge horizontale :
+
+- index sharding par type de contenu,
+- possibilité de partitionnement par serveur (si besoin).
+
+Les index sont optimisés pour le **temps de réponse** (< 100 ms sur des requêtes courantes).
+
+Le service `Search` peut être scalé indépendamment des autres services selon la volumétrie.
 
 == Conclusion
 
-Cette solution permet d’intégrer un moteur de recherche :
+L’intégration d’un moteur de recherche dédié renforce considérablement l’expérience utilisateur sur Beep :
 
-- Performant et extensible.
-- Sécurisé et respectueux des permissions applicatives.
-- Compatible avec l’architecture cible de Beep.
+- Navigation fluide dans les contenus,
+- Recherche contextuelle précise,
+- Respect strict des permissions,
+- Montée en charge maîtrisée.
 
----
+Le découplage en microservice garantit également une **évolutivité** et une **maintenabilité** optimale de cette brique.
 
-Fin de section.
-
----
-
-Si tu es d’accord, je passe maintenant à la dernière section obligatoire : **UI / intégration applicative**.
-Prêt pour la suite ?
-Je te prépare directement la structure Asciidoc correspondante, toujours dans le même style professionnel.

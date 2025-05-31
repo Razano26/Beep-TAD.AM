@@ -2,26 +2,29 @@
 
 == Objectif
 
-Cette section décrit l’architecture technique cible de la plateforme **Beep**, dans sa version microservices, en détaillant :
+Cette section présente l’architecture technique cible de la plateforme **Beep**, dans sa version microservices, en détaillant le découpage fonctionnel, les principes d’intégration, l’architecture de déploiement, ainsi que les modes de communication inter-services.
 
-- Le découpage fonctionnel en microservices
-- Les grands principes d’intégration
-- L’architecture de déploiement cible
-- Les modes de communication inter-services
+L’approche adoptée vise à garantir une architecture modulaire, sécurisée, observable et évolutive, cohérente avec les contraintes métier et les exigences de production de Beep.
 
 == Principes directeurs
 
-L’évolution vers une architecture microservices répond aux besoins suivants :
+Le passage à une architecture microservices est motivé par plusieurs objectifs structurants :
 
-- **Modularité** : permettre des évolutions indépendantes des différents domaines fonctionnels
-- **Scalabilité ciblée** : ajuster le dimensionnement par domaine de charge
-- **Résilience** : limiter les effets de bord d’une défaillance sur le système global
-- **Observabilité** : améliorer le suivi des flux et des comportements
-- **Sécurité** : cloisonner les responsabilités et durcir les communications internes
+- **Modularité** : permettre l’évolution indépendante des différents domaines fonctionnels, en facilitant l’ajout ou l’évolution de fonctionnalités.
+- **Scalabilité ciblée** : offrir la capacité d’adapter dynamiquement le dimensionnement de chaque service en fonction des charges réelles (messagerie, recherche, notifications...).
+- **Résilience** : limiter les impacts d’une défaillance en cloisonnant les responsabilités fonctionnelles et les flux.
+- **Observabilité** : fournir une visibilité fine et bout-en-bout sur les flux applicatifs et les performances de la plateforme.
+- **Sécurité** : garantir un cloisonnement strict, un chiffrement systématique des flux, et une gestion centralisée des autorisations métier.
+
+Pour répondre à ces exigences, l’architecture technique cible s’appuie notamment sur les apports suivants :
+
+- Un service mesh **Istio** pour le contrôle et la sécurisation des communications inter-services.
+- Un service transverse **Permify** pour la gestion fine des autorisations (ABAC/RBAC).
+- Un découpage en microservices autonomes, chacun responsable de son propre périmètre fonctionnel.
 
 == Découpage en microservices
 
-Le découpage est basé sur les **quartiers fonctionnels** identifiés dans la vue logique :
+Le découpage est fondé sur les **quartiers fonctionnels** identifiés dans la vue logique :
 
 [mermaid]
 ----
@@ -35,6 +38,7 @@ graph TD
     G[Search Service]
     H[Moderation & Supervision Service]
     I[Media Management Service]
+    J[Authorization Service (Permify)]
 
     subgraph Frontend
         FE[Web Client / Mobile App]
@@ -54,10 +58,20 @@ graph TD
     B --> G
     E --> G
     D --> E
-    C --> D
+
+    %% Appels d'autorisation
+    A --> J
+    B --> J
+    C --> J
+    D --> J
+    E --> J
+    F --> J
+    G --> J
+    H --> J
+    I --> J
 ----
 
-**Services principaux** :
+Les principaux services sont :
 
 | Service | Rôle principal |
 |---------|----------------|
@@ -70,32 +84,27 @@ graph TD
 | Search | Indexation et recherche full-text |
 | Moderation & Supervision | Modération des contenus, supervision globale |
 | Media Management | Stockage et gestion des fichiers |
+| Authorization (Permify) | Service transverse d’autorisation (ABAC/RBAC) |
 
 == Architecture de déploiement cible
 
-L’environnement de production repose sur :
-
-- Un cluster Kubernetes **Talos** sur infrastructure **Proxmox** (baremetal / VM)
-- Un **ingress-nginx** en frontal
-- Un **cert-manager** pour la gestion des certificats
-- Un système de **Secrets Management** (Vault ou SealedSecrets)
-- Un service **Redis** partagé pour les caches (sessions, présence)
-- Une stack **ElasticSearch** dédiée à la recherche
-- Des bases **PostgreSQL** dédiées par service
+La plateforme est déployée sur un cluster Kubernetes **Talos**, orchestré sur une infrastructure **Proxmox** baremetal / virtualisée. Le déploiement s’appuie sur une architecture d’observabilité avancée et un maillage de sécurité renforcé.
 
 [mermaid]
 ----
 graph TD
     subgraph Cluster K8s [Talos K8s Cluster]
-        nginx[ingress-nginx]
+        ingress[ingress-nginx]
+        istio[Istio Service Mesh]
         keycloak[Keycloak (OIDC)]
-        sealed[Vault / SealedSecrets]
+        vault[Vault (Secrets Management)]
         redis[Redis]
         elastic[ElasticSearch]
         postgres_user[(Postgres User)]
         postgres_server[(Postgres Server)]
         postgres_message[(Postgres Messaging)]
         postgres_moderation[(Postgres Moderation)]
+        permify[Authorization Service (Permify)]
         fe[Frontend (Web / Mobile)]
 
         svc_auth[Auth Service]
@@ -109,14 +118,17 @@ graph TD
         svc_media[Media Management]
     end
 
-    fe --> nginx
-    nginx --> svc_auth
-    nginx --> svc_user
-    nginx --> svc_server
-    nginx --> svc_channel
-    nginx --> svc_msg
-    nginx --> svc_notif
-    nginx --> svc_search
+    fe --> ingress
+    ingress --> istio
+    istio --> svc_auth
+    istio --> svc_user
+    istio --> svc_server
+    istio --> svc_channel
+    istio --> svc_msg
+    istio --> svc_notif
+    istio --> svc_search
+    istio --> svc_moderation
+    istio --> svc_media
 
     svc_auth --> keycloak
     svc_user --> postgres_user
@@ -125,30 +137,48 @@ graph TD
     svc_moderation --> postgres_moderation
     svc_notif --> redis
     svc_search --> elastic
-    svc_channel --> svc_msg
+
+    %% Appels autorisation
+    svc_auth --> permify
+    svc_user --> permify
+    svc_server --> permify
+    svc_channel --> permify
+    svc_msg --> permify
+    svc_notif --> permify
+    svc_search --> permify
+    svc_moderation --> permify
+    svc_media --> permify
 ----
+
+Les composants transverses clés sont :
+
+- **Istio** : sécurisation mTLS des flux internes, politique réseau fine, observabilité transverse.
+- **Permify** : service d’autorisation utilisé par l’ensemble des microservices pour évaluer les droits d’accès.
+- **Vault** : gestion sécurisée des secrets, avec rotation automatique.
+- **ElasticSearch** : moteur de recherche full-text.
+- **Redis** : stockage temporaire (sessions, présence).
+- **PostgreSQL** : base de données dédiée par domaine métier.
 
 == Modes de communication inter-services
 
-- **Appels synchrones REST** pour les interactions classiques entre services
-- **Redis Pub/Sub ou WebSocket events** pour les notifications en temps réel
-- **Aucun message broker (Kafka, RabbitMQ, etc.)** en conformité avec les contraintes de l’exercice
-- Les flux asynchrones de supervision et de notification se font via des mécanismes légers intégrés à Redis ou via des endpoints REST internes.
+Les interactions entre microservices sont structurées selon le principe suivant :
+
+- **Appels REST synchrones** (via Istio, sécurisé en mTLS) pour les interactions courantes entre services (CRUD, recherche, vérification de droits…).
+- **Utilisation transverse de Permify** en REST ou en gRPC (selon besoins de performance) pour les vérifications d’autorisations.
+- **WebSocket / SSE** pour les notifications temps réel.
+- **Pas de message broker** : les flux asynchrones sont réalisés via Redis Pub/Sub ou mécanismes légers, en conformité avec les contraintes de l’exercice.
+
+Grâce à Istio, chaque appel entre microservices bénéficie d’une sécurisation mTLS automatique, d’une authentification forte, et d’une traçabilité complète (spans propagés, métriques).
 
 == Conclusion
 
-Cette architecture cible garantit un **compromis** entre :
+L’architecture technique cible de Beep vise à garantir :
 
-- Respect des **contraintes imposées** (pas de message broker, CQRS ou Event Sourcing)
-- Respect des bonnes pratiques de microservices (découplage, scalabilité)
-- Cohérence avec le modèle fonctionnel de Beep
-- Cohérence avec l’infrastructure Talos sur Proxmox retenue
+- Une séparation claire des responsabilités métier.
+- Une sécurité transverse forte (mTLS, contrôle d’accès via Permify, secrets centralisés).
+- Une scalabilité fine, avec une capacité d’évolution indépendante des services.
+- Une excellente observabilité, grâce à l’intégration native avec le service mesh.
+- Une conformité totale avec les contraintes du projet (absence de broker, CQRS, ES).
 
-Les sections suivantes détailleront les aspects spécifiques :
+Les sections suivantes détailleront plus en profondeur la gestion de l’authentification, la supervision, la sécurité, l’intégration UI et les stratégies de gestion de production.
 
-- Gestion de l’authentification (OIDC)
-- Supervision et observabilité
-- Sécurité inter-services
-- Intégration UI
-- Architecture de recherche
-- Plan de gestion de la production

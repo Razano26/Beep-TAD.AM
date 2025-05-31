@@ -1,63 +1,136 @@
 = Gestion de la production et exploitation
-:sectnums:
-:sectnumlevels: 4
 
 == Objectifs
 
-Définir les pratiques de mise en production, de supervision et d’exploitation pour garantir un service robuste, fiable et maintenable.
+Assurer une mise en production :
+
+- fiable,
+- reproductible,
+- sécurisée,
+- monitorée.
+
+Garantir un **pilotage opérationnel efficace** de la plateforme Beep :
+
+- gestion des incidents,
+- supervision en continu,
+- stratégie de continuité et de réversibilité.
 
 == Pipeline CI/CD
 
-- Outil : GitLab CI
-- Intégration continue automatisée
-- Build images OCI
-- Tests automatisés (unitaires, intégration, sécurité)
-- Publication dans registre sécurisé
-- Déploiement progressif via GitOps (ArgoCD)
+Le pipeline CI/CD est conçu autour de :
+
+- **GitLab CI** pour l’automatisation des processus,
+- **GitOps** (ArgoCD) pour la cohérence des déploiements.
+
+Principes :
+
+- Build d’images OCI standardisées (Docker/OCI),
+- tests automatisés :
+  - unitaires,
+  - tests d’intégration,
+  - scans de sécurité (SAST, Dependency Scanning),
+- publication dans registre sécurisé (Harbor ou GitLab Registry),
+- promotion d’environnement en environnement (Dev → Staging → Prod).
 
 == Stratégie de déploiement
 
-- Déploiement par environnement :
-  - dev → staging → production
-- Progressive Delivery :
-  - Canary Release
-  - Blue/Green Deployment (si besoin)
-- Rollback automatisé
-- Contrôle de version fine (tags Git / images)
+Modes de déploiement :
+
+- **Canary Release** : validation progressive sur un sous-ensemble de trafic,
+- **Blue/Green Deployment** (optionnel) pour mise à jour sans coupure,
+- **Progressive Delivery** avec surveillance automatique des indicateurs clés.
+
+Rollback :
+
+- automatique en cas d’échec détecté,
+- manuel possible à toute version validée (stratégie de tags et artefacts versionnés).
 
 == Supervision post-production
 
-- Stack de supervision :
-  - Prometheus + Alertmanager
-  - Grafana (tableaux de bord)
-  - Loki pour centralisation des logs
-  - Tracing (Jaeger/OpenTelemetry)
+Architecture de supervision :
 
-- Intégration SOC :
-  - Logs de sécurité vers SIEM
-  - Audit Trail (API, authentifications, actions critiques)
+[mermaid]
+----
+graph TD
+    Prometheus --> Alertmanager
+    Loki --> Grafana
+    Tempo --> Grafana
+    ElasticSearch --> SOC
+    Grafana --> DevOpsTeam
+    Alertmanager --> OnCallEngineers
+----
+
+Composants :
+
+- **Prometheus** : métriques système + métier,
+- **Alertmanager** : gestion des alertes,
+- **Grafana** : visualisation (dashboards temps réel),
+- **Loki** : centralisation des logs applicatifs,
+- **Tempo** : traces distribuées,
+- **ElasticSearch** : logs de sécurité, audit,
+- intégration avec le **SOC entreprise**.
+
+Tableaux de bord :
+
+- Santé des services,
+- Expérience utilisateur (latences perçues),
+- Flux critiques (messagerie, recherche, authentification).
 
 == Gestion des incidents
 
-- Monitoring proactif
-- Playbooks d’intervention
-- Notification des équipes
-- Mise en place de SLOs / SLIs
-- Post-mortem systématique
+Processus :
+
+- Détection proactive via seuils et alerting,
+- On-call rotation (astreinte) organisée,
+- Playbooks d’intervention documentés,
+- Analyse post-incident systématique (post-mortem),
+- Publication d’un **rapport de disponibilité mensuel**.
+
+Indicateurs :
+
+- SLO (Service Level Objectives),
+- SLI (Service Level Indicators),
+- MTTR (Mean Time to Recovery).
 
 == Sauvegarde et réversibilité
 
-- Sauvegarde régulière des bases
-- Sauvegarde chiffrée et externalisée
-- Tests de restauration périodiques
-- Réversibilité des déploiements :
-  - possibilité de rollback à N versions
-  - documentation des dépendances
+Politique de sauvegarde :
+
+- Sauvegarde régulière et chiffrée des bases (PostgreSQL, ElasticSearch),
+- Rotation et rétention configurée,
+- Externalisation vers un stockage sécurisé (type S3 ou équivalent chiffré),
+- Tests de restauration périodiques (scénarios réalistes validés).
+
+Réversibilité :
+
+- Stratégie de versioning stricte des artefacts et des manifests GitOps,
+- Possibilité de rollback contrôlé jusqu’à **N versions antérieures**,
+- Documentation précise des dépendances par version.
 
 == Plan d’évolution continue
 
-- Revue régulière de l’architecture
-- Tests de charge / scalabilité
-- Veille technologique
-- Amélioration continue des processus
+Démarche DevOps :
+
+- revues régulières de l’architecture et des processus,
+- tests de montée en charge planifiés,
+- analyse des **coûts d’exploitation**,
+- recherche continue de simplification technique,
+- intégration des retours opérationnels des équipes et des utilisateurs.
+
+Veille technologique :
+
+- suivi des nouvelles versions des outils clés (Talos, Istio, Keycloak, Elasticsearch, etc.),
+- étude des solutions complémentaires (service mesh avancé, outils de chaos engineering),
+- intégration progressive de bonnes pratiques du Cloud Native Landscape.
+
+== Conclusion
+
+Le dispositif de gestion de production proposé permet à la plateforme Beep de :
+
+- garantir un haut niveau de qualité de service,
+- détecter et résoudre rapidement les incidents,
+- sécuriser les données,
+- assurer une capacité d’évolution contrôlée.
+
+Ce cadre opérationnel soutient la **maturité de la plateforme** en environnement de production exigeant.
 

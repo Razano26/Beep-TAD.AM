@@ -1,13 +1,16 @@
 = Intégration des applications UI
-:sectnums:
-:sectnumlevels: 4
 
-== Objectif
+== Objectifs
 
-Garantir une expérience utilisateur fluide et cohérente, malgré l'architecture distribuée de l’application Beep.
-L’utilisateur ne doit percevoir qu’une seule application homogène.
+L’architecture microservices de Beep doit rester **totalement transparente pour l’utilisateur final**.
 
-Cette section décrit l’intégration des composants UI avec les microservices.
+La plateforme doit proposer une **expérience utilisateur fluide, cohérente et unifiée**, quels que soient les services sollicités en back-end.
+
+Cette section décrit :
+
+- les principes d’intégration frontend,
+- les patterns d’interaction avec les services,
+- le cas spécifique des flux temps réel (WebSocket, WebRTC).
 
 == Architecture générale
 
@@ -15,90 +18,118 @@ Cette section décrit l’intégration des composants UI avec les microservices.
 ----
 graph TD
     Client[Frontend Beep (SPA React)]
-    API[API Gateway (Kong)]
-    Auth[Service Authentification]
-    Users[Service Utilisateurs]
-    Servers[Service Serveurs]
-    Channels[Service Canaux]
-    Messages[Service Messagerie]
-    Notifications[Service Notifications]
-    Search[Service Recherche]
-    Streaming[Service WebRTC / Streaming]
+    APIGateway[Istio Ingress / API Gateway]
+    Auth[Auth Service]
+    Users[User Management]
+    Servers[Server Management]
+    Channels[Channel Service]
+    Messages[Messaging Service]
+    Notifications[Notification Service]
+    Search[Search Service]
+    Streaming[WebRTC / Streaming Service]
 
-    Client --> API
-    API --> Auth
-    API --> Users
-    API --> Servers
-    API --> Channels
-    API --> Messages
-    API --> Notifications
-    API --> Search
-    API --> Streaming
+    Client --> APIGateway
+    APIGateway --> Auth
+    APIGateway --> Users
+    APIGateway --> Servers
+    APIGateway --> Channels
+    APIGateway --> Messages
+    APIGateway --> Notifications
+    APIGateway --> Search
+    APIGateway --> Streaming
 ----
+
+Le **point d’entrée unique** pour le client est l’API Gateway, protégée par mTLS et JWT.
 
 == Approche d’intégration
 
-=== 1. API Gateway unifiée
+=== API Gateway unifiée
 
-Toutes les requêtes UI transitent par un point d’entrée unique :
+Toutes les requêtes UI passent par l’API Gateway :
 
-- API Gateway (Kong)
-- Versionnement d'API
-- Uniformisation des erreurs
-- Gestion centralisée de l'authentification (JWT, cookie sécurisé)
+- homogénéisation des points d’entrée,
+- gestion des erreurs,
+- contrôle d’accès,
+- traçabilité (observabilité).
 
-Avantage : l'UI n’a pas connaissance de la granularité des microservices.
+Cela isole le client des détails d’implémentation des microservices.
 
-=== 2. UI monolithique (SPA)
+=== SPA React centralisée
 
-- Application React unique, déployée indépendamment
-- Communication avec l'API Gateway via REST (synchrone) + WebSocket pour le temps réel
-- Gestion du *state* unifiée (React Query / Redux Toolkit)
+Le client Beep est développé sous forme de **Single Page Application (SPA)** :
 
-=== 3. Cas spécifique : WebRTC (conférences vidéo)
+- framework : React + Next.js (statique optimisé / hydratation côté client),
+- état applicatif : React Query ou Redux Toolkit.
 
-Le service de streaming est encapsulé côté frontend :
+Les interactions se font en :
 
-- API REST pour la création de salle
-- WebSocket pour la signalisation
-- Transport direct WebRTC P2P pour les flux vidéo/audio
-- Authentification des flux WebRTC : token court durée
+- REST synchrones (appels métier),
+- WebSocket (temps réel : messages, notifications, présence).
 
-L'UI masque totalement la nature distribuée de cette brique.
+=== Gestion des flux temps réel
 
-=== 4. UX cohérente
+Le canal principal temps réel est géré via **WebSocket sécurisé** :
 
-Principes :
-
-- Navigation unifiée (SPA)
-- Comportements temps réel homogènes
-- Feedback utilisateur immédiat
-- Gestion des erreurs centralisée
-
-== Diagramme de séquence - Démarrage d’une visioconférence
+- Notifications : push (nouveaux messages, statut en ligne, invitations),
+- Messagerie : nouveaux messages en direct.
 
 [mermaid]
 ----
 sequenceDiagram
     participant Client
-    participant API_Gateway
-    participant Auth
-    participant Streaming
+    participant APIGateway
+    participant NotificationService
 
-    Client->>API_Gateway: POST /conferences/start
-    API_Gateway->>Auth: Validate JWT
-    Auth-->>API_Gateway: OK
-    API_Gateway->>Streaming: Create conference room
-    Streaming-->>API_Gateway: Conference token + ICE servers
-    API_Gateway-->>Client: Conference info
+    Client->>APIGateway: Open WebSocket
+    APIGateway->>NotificationService: Upgrade WebSocket (authenticated)
+    NotificationService-->>Client: Push events (new_message, friend_online, invite_received)
+----
+
+=== Cas spécifique : WebRTC (visioconférences)
+
+La brique conférence (vidéo/voix) utilise un pattern hybride :
+
+- contrôle de session : REST,
+- signalisation : WebSocket,
+- transport média : **WebRTC** (P2P ou via TURN).
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant APIGateway
+    participant StreamingService
+
+    Client->>APIGateway: POST /conferences/start
+    APIGateway->>StreamingService: Create conference
+    StreamingService-->>APIGateway: Conference tokens + ICE servers
+    APIGateway-->>Client: Conference setup
     Client-->>Client: Initiate WebRTC connection
 ----
 
+Les flux médias ne transitent pas par le cluster applicatif, ce qui garantit **scalabilité et faible latence**.
+
+== Cohérence UX
+
+L’application est conçue pour offrir une UX :
+
+- homogène sur l’ensemble des fonctionnalités,
+- réactive (optimisation du temps de réponse perçu),
+- résiliente face aux indisponibilités partielles (dégradation progressive).
+
+Techniques employées :
+
+- gestion centralisée des erreurs et de la session,
+- feedback utilisateur instantané,
+- synchronisation en temps réel de l’état applicatif.
+
 == Conclusion
 
-Cette approche garantit :
+Cette approche garantit que **l’architecture distribuée reste invisible pour l’utilisateur**.
 
-- Une UX homogène
-- Une gestion centralisée de la sécurité
-- Une flexibilité pour faire évoluer les microservices de façon transparente pour l'utilisateur
+Le découplage fort entre frontend et microservices permet de :
+
+- faire évoluer les briques backend en toute transparence,
+- optimiser indépendamment les flux UI et les flux métier,
+- maintenir une UX optimale, même à grande échelle.
 

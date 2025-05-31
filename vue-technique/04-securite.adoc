@@ -1,128 +1,154 @@
 = Architecture de sécurité
 
-== Objectif
+== Objectifs
 
-Garantir une plateforme Beep :
+La sécurité est une composante structurante de l'architecture de Beep.
+Dans un contexte multi-tenant, avec des flux temps réel, une exposition publique, et des fonctionnalités de communication interpersonnelle, il est indispensable de garantir :
 
-- Résiliente aux attaques
-- Conforme aux meilleures pratiques de sécurité
-- Protégeant la confidentialité des utilisateurs
-- Robuste face aux tentatives de compromission interne ou externe
+- la confidentialité des échanges,
+- l'intégrité des données,
+- l'authentification forte des utilisateurs,
+- le contrôle strict des autorisations,
+- la résilience face aux menaces.
 
-Cette section décrit :
+La présente section décrit les dispositifs mis en œuvre pour répondre à ces objectifs dans le cadre de l'architecture microservices.
 
-- L'architecture réseau sécurisée
-- La gestion des échanges entre microservices
-- La gestion des identités et des autorisations
-- La politique de gestion des certificats et de chiffrement
-- Le cas d'extension vers les applications mobiles
+== Architecture réseau sécurisée
 
-== Architecture physique et réseau
+L'architecture réseau repose sur le principe de **séparation stricte des zones**, avec une **DMZ Kubernetes** en frontal.
 
 [mermaid]
 ----
 graph TD
-    Internet -->|443 HTTPS| Ingress[Ingress-nginx (DMZ)]
-    Ingress -->|mTLS| svc_gateway[API Gateway]
+    Internet -->|HTTPS 443| Ingress[Ingress Nginx (DMZ)]
+    Ingress -->|mTLS| Gateway[API Gateway (Istio Ingress)]
 
-    subgraph K8s cluster (Talos)
-        svc_gateway -->|mTLS| svc_auth[Auth Service]
-        svc_gateway -->|mTLS| svc_user[User Management]
-        svc_gateway -->|mTLS| svc_server[Server Management]
-        svc_gateway -->|mTLS| svc_channel[Channel Service]
-        svc_gateway -->|mTLS| svc_msg[Messaging Service]
-        svc_gateway -->|mTLS| svc_notif[Notifications Service]
-        svc_gateway -->|mTLS| svc_search[Search Service]
-        svc_gateway -->|mTLS| svc_mod[Moderation Service]
+    subgraph K8s Cluster (Talos)
+        Gateway -->|mTLS| Auth[Auth Service]
+        Gateway -->|mTLS| Users[User Management]
+        Gateway -->|mTLS| Servers[Server Management]
+        Gateway -->|mTLS| Channels[Channel Service]
+        Gateway -->|mTLS| Messaging[Messaging Service]
+        Gateway -->|mTLS| Notifications[Notification Service]
+        Gateway -->|mTLS| Search[Search Service]
+        Gateway -->|mTLS| Moderation[Moderation Service]
     end
 
+    Ingress -->|443| Keycloak
     Ingress --> Grafana
     Ingress --> Kibana
-    Ingress -->|443| Keycloak
 ----
 
-== DMZ et séparation des zones
+Les communications sont sécurisées à plusieurs niveaux :
 
-- **DMZ Kubernetes** : ingress-nginx exposé en frontal, traffic TLS only
-- API Gateway en première ligne dans le cluster (reverse proxy applicatif)
-- Aucune communication directe entre Internet et les services internes
-- Communication inter-services strictement **mTLS** (mutual TLS) obligatoire
-- Politique **Zero Trust** : chaque service ne peut parler qu'aux services nécessaires (NetworkPolicy K8s)
+- **TLS 1.3** en entrée, sur tous les flux externes.
+- **mTLS interne** (mutual TLS) pour les communications entre l'API Gateway et les services backend, via le Service Mesh Istio.
+- **Network Policies Kubernetes** limitant les communications inter-pods au strict nécessaire.
 
-== Authentification mobile (application native)
+== Authentification et gestion des identités
+
+Le système d'authentification repose sur **Keycloak** en mode OIDC provider.
+
+Les utilisateurs peuvent s’authentifier :
+
+- via un compte Beep natif (email / mot de passe),
+- via leur compte **Google**,
+- via leur compte **Polytech** (OIDC sur LDAP).
+
+Les tokens JWT signés par Keycloak sont utilisés comme vecteur d’identité et de preuve d’authentification sur l’ensemble des API.
+
+La validation des tokens est réalisée :
+
+- par l’API Gateway en frontal,
+- par les microservices en contrôle d'accès local.
+
+== Gestion fine des autorisations
+
+Le contrôle d’accès métier ne se limite pas aux rôles globaux (user, admin).
+
+Un service d’autorisations délégué, basé sur **Permify** (moteur d’autorisations relationnelles), est intégré pour gérer :
+
+- les permissions au niveau des **serveurs communautaires**,
+- les permissions par **canal**,
+- les permissions par **action** métier.
+
+Permify offre un modèle déclaratif flexible, auditables, permettant de :
+
+- décrire les autorisations sous forme de politiques explicites,
+- évaluer les droits en temps réel,
+- garantir la cohérence des règles même en cas d’évolution du modèle métier.
+
+Exemple : seul un utilisateur disposant de la permission `channel:write` sur un canal donné pourra y poster un message.
+
+== Chiffrement des flux et des données
+
+Le chiffrement est systématisé :
+
+- TLS 1.3 en entrée et en interne (Istio)
+- JWT signés (RS256)
+- Données au repos :
+  - PostgreSQL : encryption at rest (native PG + stockage chiffré Talos/ceph)
+  - ElasticSearch : index chiffrés, transport chiffré
+  - Redis : TLS activé, chiffrement mémoire possible si besoin
+- Secrets :
+  - rotation automatique via **Vault** pour les secrets dynamiques,
+  - SealedSecrets pour les secrets statiques dans GitOps.
+
+== Cas spécifique : application mobile
+
+Le flux d'authentification pour l’application mobile repose sur **OIDC avec PKCE** :
 
 [mermaid]
 ----
 sequenceDiagram
-    participant Mobile App
+    participant MobileApp
     participant Ingress
     participant Keycloak
-    participant API Gateway
-    participant Auth Service
+    participant API_Gateway
+    participant AuthService
 
-    Mobile App->>Ingress: HTTPS /oauth/authorize
-    Ingress->>Keycloak: Redirect OAuth flow
-    Keycloak-->>Mobile App: Auth code
-    Mobile App->>Ingress: HTTPS /oauth/token
-    Ingress->>Keycloak: Exchange code for token
-    Keycloak-->>Mobile App: JWT / Refresh token
+    MobileApp->>Ingress: /oauth/authorize (PKCE)
+    Ingress->>Keycloak: OIDC Flow
+    Keycloak-->>MobileApp: Auth code
+    MobileApp->>Ingress: /oauth/token
+    Ingress->>Keycloak: Token exchange
+    Keycloak-->>MobileApp: JWT + refresh token
 
-    Mobile App->>Ingress: HTTPS /api/...
-    Ingress->>API Gateway: Forward with Bearer JWT
-    API Gateway->>Auth Service: Validate JWT
+    MobileApp->>Ingress: API calls (JWT)
+    Ingress->>API_Gateway: Forward (JWT)
+    API_Gateway->>AuthService: Validate JWT
 ----
 
-- Application mobile utilise **OIDC** avec **PKCE flow** recommandé
-- Communication 100% chiffrée via HTTPS
-- Le JWT obtenu est utilisé pour toutes les requêtes API
+Cela garantit une protection forte contre les attaques de type man-in-the-middle ou interception de token.
 
-== Politique de chiffrement
+== Sécurisation des communications inter-services
 
-- **TLS 1.3** activé sur tous les flux externes et internes
-- **Cert-manager** déploie les certificats :
-  - Public cert (Ingress) → ACME / Let's Encrypt ou CA entreprise
-  - Interne (mTLS) → Issuer interne + rotation automatique (Vault ou cert-manager interne)
-- Secrets stockés :
-  - Secrets statiques → SealedSecrets (sealed-secrets controller)
-  - Secrets dynamiques → Vault (ex : DB credentials, tokens)
+Les échanges inter-microservices sont strictement contrôlés :
 
-== Cryptographie choisie
+- Chaque service dispose de son **identité mTLS** (SPIFFE ID via Istio).
+- Les politiques de communication sont définies dans Istio (Authorization Policies).
+- Les contrôles d'accès métier (via JWT + Permify) viennent en complément du filtrage réseau.
 
-- HTTPS → TLS 1.3
-- mTLS → TLS 1.3 avec mutual auth
-- JWT → RS256 (clé privée signée par Keycloak, clé publique diffusée)
-- Chiffrement des données au repos :
-  - PostgreSQL : **data-at-rest encryption**
-  - ElasticSearch : **Encrypted index + encrypted communication**
-  - Redis : TLS et optional in-memory encryption
-
-== Sécurisation inter-microservices
-
-- Authentification forte inter-services via mTLS
-- API Gateway valide :
-  - JWT utilisateur
-  - Scope et claims pour les autorisations
-- Politique de droit par service : principe du **moindre privilège**
-- Politique réseau :
-  - NetworkPolicy K8s
-  - Séparation namespace sensible / non sensible
+Ce modèle permet d’appliquer un **principe de moindre privilège**, en réduisant le périmètre d'attaque potentiel.
 
 == Monitoring de la sécurité
 
-- Logs de sécurité (auth, anomalies) forwardés vers ElasticSearch (cf. Observabilité)
-- Alerting automatique Grafana / SOC
-- Monitoring des certificats (période de validité, renouvellement)
+Le dispositif de supervision (cf. section Observabilité) est enrichi d’un monitoring sécurité :
+
+- Les logs de sécurité (authentifications, anomalies) sont forwardés vers le **SIEM**.
+- Des alertes automatiques sont configurées (Grafana, Alertmanager).
+- Les certificats mTLS sont surveillés (expiration, renouvellement).
+- Des tableaux de bord sécurité spécifiques sont maintenus.
 
 == Conclusion
 
-La politique de sécurité Beep repose sur les principes suivants :
+L’architecture de sécurité de Beep repose sur des principes robustes et alignés avec les bonnes pratiques actuelles :
 
-- Isolation réseau stricte
-- Chiffrement systématique des flux
-- Gestion forte des identités et des autorisations
-- Rotation automatique des secrets
-- Traçabilité complète des événements de sécurité
-- Résilience face aux menaces externes et internes
+- **Zero Trust** au niveau réseau,
+- **authentification forte** et centralisée,
+- **contrôle d’accès délégué** et auditable,
+- **chiffrement systématique**,
+- **supervision active**.
 
-Cela permet de garantir une architecture **secure by design** adaptée aux exigences de production.
+Elle offre un niveau de garantie adapté aux besoins de production, et un socle évolutif pour les futures exigences de conformité.
 
