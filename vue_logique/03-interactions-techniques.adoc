@@ -11,17 +11,20 @@ Cette section complète la vue logique en décrivant les interactions techniques
 | Mode
 | Description
 
-| Appels REST synchrones
-| Utilisés pour les interactions classiques (authentification, messages, gestion des rôles, etc.)
+| Appels REST synchrones (via API Gateway)
+| Utilisés pour les interactions classiques (authentification, gestion des utilisateurs, serveurs, canaux, messages, recherche, supervision & modération). Transitent par l’API Gateway sécurisée (Istio Ingress).
 
-| Événements pub/sub (Kafka ou autre)
-| Utilisés pour les notifications, la modération, ou les traitements asynchrones (ex: archivage, journalisation).
+| Événements pub/sub (Redis Pub/Sub)
+| Utilisés pour les notifications, la modération, et certains traitements asynchrones (ex : archivage automatique, supervision). En conformité avec les contraintes du projet (pas de broker centralisé type Kafka).
 
-| Partage de cache ou session
-| Ex: Redis pour sessions utilisateurs ou présence en ligne.
+| Partage de cache ou session (Redis)
+| Utilisé pour la gestion des sessions utilisateurs, la présence en ligne, et les informations temporaires à forte volatilité.
+
+| Service transverse d'autorisation (Permify)
+| Tous les services vérifient les droits d'accès métiers via des appels REST ou gRPC vers le service `Authorization (Permify)`.
 
 | Base de données partagée (évité)
-| Chaque service possède idéalement sa propre base. Les accès croisés sont évités sauf nécessité critique (ex: supervision).
+| Chaque service possède sa propre base de données. Les accès croisés sont évités sauf nécessité métier stricte (ex: agrégation transverse dans la supervision).
 |===
 
 == Carte des interactions principales
@@ -29,15 +32,31 @@ Cette section complète la vue logique en décrivant les interactions techniques
 [mermaid]
 ----
 graph LR
-    Authentification -->|REST| Utilisateurs
-    Utilisateurs -->|REST| Serveurs
-    Serveurs -->|REST| Canaux
-    Canaux -->|REST| Messages
-    Messages -->|Event| Notifications
-    Messages -->|Event| Modération
-    Notifications -->|Push| Clients
-    Recherche -->|REST| Utilisateurs
-    Recherche -->|REST| Messages
+    subgraph API Gateway
+        Gateway
+    end
+
+    Gateway -->|REST| Authentification
+    Gateway -->|REST| Utilisateurs
+    Gateway -->|REST| Serveurs
+    Gateway -->|REST| Canaux
+    Gateway -->|REST| Messagerie
+    Gateway -->|REST| Notifications
+    Gateway -->|REST| Recherche
+    Gateway -->|REST| SupervisionModération
+
+    Authentification -->|REST/gRPC| Authorization
+    Utilisateurs -->|REST/gRPC| Authorization
+    Serveurs -->|REST/gRPC| Authorization
+    Canaux -->|REST/gRPC| Authorization
+    Messagerie -->|REST/gRPC| Authorization
+    Notifications -->|REST/gRPC| Authorization
+    Recherche -->|REST/gRPC| Authorization
+    SupervisionModération -->|REST/gRPC| Authorization
+
+    Messagerie -->|Event (Redis Pub/Sub)| Notifications
+    Messagerie -->|Event (Redis Pub/Sub)| SupervisionModération
+    Notifications -->|Push WebSocket| Clients
 ----
 
 == Formats d’échange
@@ -116,15 +135,15 @@ event: "friend_request.accepted"
 }
 ----
 
-
 == Sécurité des interactions
 
-- Toutes les APIs REST sont protégées par JWT ou cookie sécurisé.
-- Les événements sont filtrés côté consommateur selon les droits utilisateur.
-- Les appels inter-services utilisent mTLS ou un service mesh si disponible.
+- Toutes les APIs REST sont protégées par JWT, transmis via l’API Gateway.
+- Les appels inter-services utilisent mTLS (via Istio).
+- Les droits d'accès sont vérifiés de manière transverse via `Authorization (Permify)`.
+- Les événements pub/sub sont sécurisés par les contrôles d’abonnement et de consommation côté services.
 
 == Évolutions prévues
 
-- Introduction de gRPC pour certaines interactions haute-fréquence.
-- Ajout d’un service broker pour les workflows multi-services (ex: temporal.io).
-- Spécification OpenAPI pour tous les endpoints publics.
+- Introduction de gRPC pour certaines interactions haute-fréquence ou critiques en performance (ex: Permission checks intensifs vers Permify, supervision en temps réel).
+- Complétude de la spécification OpenAPI pour tous les endpoints publics et internes.
+- Ajout éventuel de patterns de sagas / workflows distribués via des orchestrateurs légers compatibles (ex: Temporal.io, dans les limites des contraintes projet).

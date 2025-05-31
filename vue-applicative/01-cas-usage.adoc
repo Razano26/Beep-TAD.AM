@@ -94,12 +94,105 @@ Cette section décrit les principales fonctionnalités accessibles aux utilisate
 
 == Illustration : Diagrammes de cas d’usage
 
-[NOTE]
-====
-Les diagrammes ci-dessous doivent être insérés dans une version ultérieure avec Draw.io ou Mermaid.
-====
+=== Diagramme : Création de compte (email / Google / Polytech)
 
-* Diagramme : Création de compte (email / Google / Polytech)
-* Diagramme : Invitation d’amis et ajout à un serveur
-* Diagramme : Envoi de message dans un canal privé
-* Diagramme : Gestion des rôles et des permissions dans un serveur
+[mermaid]
+----
+sequenceDiagram
+    participant Utilisateur
+    participant Frontend
+    participant AuthService
+    participant Keycloak
+    participant UserService
+
+    Utilisateur->>Frontend: Remplir formulaire d'inscription
+    Frontend->>AuthService: POST /signup (email / Google / Polytech)
+    AuthService->>Keycloak: Créer utilisateur OIDC
+    Keycloak-->>AuthService: OK
+    AuthService->>UserService: Créer profil utilisateur
+    UserService-->>AuthService: OK
+    AuthService-->>Frontend: Succès
+    Frontend-->>Utilisateur: Compte créé
+----
+
+=== Diagramme : Invitation d’amis et ajout à un serveur
+
+[mermaid]
+----
+sequenceDiagram
+    participant UtilisateurA
+    participant FrontendA
+    participant UserService
+    participant NotificationService
+    participant UtilisateurB
+    participant FrontendB
+    participant ServerService
+    participant RoleService
+    participant ChannelService
+
+    UtilisateurA->>FrontendA: Envoyer invitation d'ami
+    FrontendA->>UserService: POST /friend-request
+    UserService->>NotificationService: Emit friend_request
+    NotificationService-->>FrontendB: Notification "nouvelle invitation"
+
+    UtilisateurB->>FrontendB: Accepter invitation
+    FrontendB->>UserService: POST /friend-request/accept
+    UserService->>UserService: Créer relation d'amitié
+    UserService->>NotificationService: Emit friend_request.accepted
+
+    UtilisateurA->>FrontendA: Inviter ami sur serveur
+    FrontendA->>ServerService: POST /server-invite
+    ServerService->>NotificationService: Emit server_invite
+    NotificationService-->>FrontendB: Notification "invitation serveur"
+
+    UtilisateurB->>FrontendB: Accepter invitation serveur
+    FrontendB->>ServerService: POST /server-invite/accept
+    ServerService->>RoleService: Assigner rôle default
+    ServerService->>ChannelService: Calculer accès canaux
+    ServerService-->>FrontendB: Succès
+----
+
+=== Diagramme : Envoi de message dans un canal privé
+
+[mermaid]
+----
+sequenceDiagram
+    participant Utilisateur
+    participant Frontend
+    participant AuthService
+    participant ChannelService
+    participant MessagingService
+    participant NotificationService
+
+    Utilisateur->>Frontend: Écrire message
+    Frontend->>MessagingService: POST /channels/:id/messages
+    MessagingService->>ChannelService: Vérifier permissions
+    ChannelService-->>MessagingService: OK
+    MessagingService->>MessagingService: Stocker message
+    MessagingService->>NotificationService: Emit new_message
+    NotificationService-->>Frontend: Push message (temps réel)
+----
+
+=== Diagramme : Gestion des rôles et des permissions dans un serveur
+
+[mermaid]
+----
+sequenceDiagram
+    participant Owner
+    participant Frontend
+    participant ServerService
+    participant RoleService
+    participant Permify
+
+    Owner->>Frontend: Créer/modifier un rôle
+    Frontend->>RoleService: POST /roles (ou PATCH /roles/:id)
+    RoleService->>Permify: Mettre à jour la politique
+    Permify-->>RoleService: OK
+    RoleService-->>Frontend: Succès
+
+    Owner->>Frontend: Attribuer rôle à un membre
+    Frontend->>ServerService: POST /members/:id/roles
+    ServerService->>RoleService: Associer rôle à utilisateur
+    RoleService-->>ServerService: OK
+    ServerService-->>Frontend: Succès
+----

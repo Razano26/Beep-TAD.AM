@@ -9,10 +9,13 @@ Les flux présentés ici préparent le terrain pour les vues techniques détaill
 == Méthodologie
 
 Chaque flux est structuré selon :
-- Le **contexte métier**
-- Les **services impliqués**
-- La **nature des interactions** (appel synchrone, publication d’événement, etc.)
-- Un **diagramme de séquence ou de flux** illustratif
+
+* Le **contexte métier**
+* Les **services impliqués**
+* La **nature des interactions** (appel synchrone, publication d’événement, etc.)
+* Un **diagramme de séquence ou de flux** illustratif
+
+NOTE: Toutes les interactions entre services sont protégées par mTLS via Istio (service mesh). Les flux asynchrones sont implémentés via Redis Pub/Sub (pas de broker central).
 
 == Flux 1 : Création de message dans un canal
 
@@ -20,15 +23,10 @@ Chaque flux est structuré selon :
 Lorsqu’un utilisateur envoie un message dans un canal, plusieurs services interviennent pour vérifier les droits, stocker le message et en notifier les membres.
 
 === Services impliqués
+- `API Gateway`
 - `Messagerie`
 - `Canaux`
 - `Notifications`
-
-=== Description du flux
-1. L’utilisateur envoie un message.
-2. Le service `Messagerie` vérifie les permissions d’écriture auprès du service `Canaux`.
-3. Le message est enregistré.
-4. Le service `Notifications` est notifié et pousse l’information aux clients abonnés.
 
 === Diagramme
 
@@ -36,15 +34,17 @@ Lorsqu’un utilisateur envoie un message dans un canal, plusieurs services inte
 ----
 sequenceDiagram
     participant Client
+    participant Gateway
     participant Messagerie
     participant Canaux
     participant Notifications
 
-    Client->>Messagerie: POST /channels/:id/messages
+    Client->>Gateway: POST /channels/:id/messages
+    Gateway->>Messagerie: POST /channels/:id/messages
     Messagerie->>Canaux: Check write permission
     Canaux-->>Messagerie: OK
     Messagerie->>Messagerie: Store message
-    Messagerie->>Notifications: Emit "new_message"
+    Messagerie->>Notifications: Publish "new_message" (Redis Pub/Sub)
     Notifications-->>Client: Push notification
 ----
 
@@ -54,13 +54,9 @@ sequenceDiagram
 Un utilisateur invite un autre utilisateur à devenir son ami.
 
 === Services impliqués
+- `API Gateway`
 - `Gestion des utilisateurs`
 - `Notifications`
-
-=== Description
-1. Le client initie une invitation.
-2. Le service `Utilisateurs` crée une invitation et la stocke.
-3. Le service `Notifications` est notifié pour afficher une alerte à l’utilisateur invité.
 
 === Diagramme
 
@@ -68,12 +64,14 @@ Un utilisateur invite un autre utilisateur à devenir son ami.
 ----
 sequenceDiagram
     participant Client
+    participant Gateway
     participant Utilisateurs
     participant Notifications
 
-    Client->>Utilisateurs: POST /friend-request
-    Utilisateurs->>Utilisateurs: Crée l'invitation
-    Utilisateurs->>Notifications: Emit "friend_request"
+    Client->>Gateway: POST /friend-request
+    Gateway->>Utilisateurs: POST /friend-request
+    Utilisateurs->>Utilisateurs: Create invitation
+    Utilisateurs->>Notifications: Publish "friend_request" (Redis Pub/Sub)
     Notifications-->>Client: Notification in-app
 ----
 
@@ -83,35 +81,31 @@ sequenceDiagram
 Lorsqu’un utilisateur accepte une invitation, il devient membre d’un serveur.
 
 === Services impliqués
+- `API Gateway`
 - `Serveurs communautaires`
+- `Authorization Service (Permify)`
 - `Canaux`
-- `Rôles`
 - `Notifications`
-
-=== Description
-1. L’utilisateur accepte une invitation.
-2. Le service `Serveurs` ajoute l’utilisateur à la liste des membres.
-3. Le service `Rôles` lui attribue le rôle par défaut.
-4. Le service `Canaux` calcule les accès autorisés.
-5. Le service `Notifications` est mis à jour.
 
 === Diagramme
 [mermaid]
 ----
 sequenceDiagram
     participant Client
+    participant Gateway
     participant Serveurs
-    participant Rôles
+    participant Permify
     participant Canaux
     participant Notifications
 
-    Client->>Serveurs: POST /server-invitations/accept
+    Client->>Gateway: POST /server-invitations/accept
+    Gateway->>Serveurs: POST /server-invitations/accept
     Serveurs->>Serveurs: Add user to members
-    Serveurs->>Rôles: Assign default role
-    Rôles-->>Serveurs: OK
+    Serveurs->>Permify: Update permissions (assign default role)
+    Permify-->>Serveurs: OK
     Serveurs->>Canaux: Compute authorized channels
     Canaux-->>Serveurs: OK
-    Serveurs->>Notifications: Emit "joined_server"
+    Serveurs->>Notifications: Publish "joined_server" (Redis Pub/Sub)
     Notifications-->>Client: Notification in-app
 ----
 
@@ -121,15 +115,10 @@ sequenceDiagram
 Un utilisateur signale un message inapproprié.
 
 === Services impliqués
+- `API Gateway`
 - `Messagerie`
 - `Modération`
 - `Notifications`
-
-=== Description
-1. L’utilisateur signale un message.
-2. Le service `Messagerie` publie un événement `message.reported`.
-3. Le service `Modération` reçoit l’événement et traite le signalement.
-4. Le service `Notifications` informe les modérateurs.
 
 === Diagramme
 
@@ -137,21 +126,22 @@ Un utilisateur signale un message inapproprié.
 ----
 sequenceDiagram
     participant Client
+    participant Gateway
     participant Messagerie
     participant Modération
     participant Notifications
 
-    Client->>Messagerie: POST /messages/:id/report
-    Messagerie->>Messagerie: Emit "message.reported"
-    Messagerie->>Modération: Receive event
+    Client->>Gateway: POST /messages/:id/report
+    Gateway->>Messagerie: POST /messages/:id/report
+    Messagerie->>Messagerie: Publish "message.reported" (Redis Pub/Sub)
+    Modération->>Modération: Receive event (via Redis)
     Modération->>Modération: Process report
-    Modération->>Notifications: Emit "report_processed"
+    Modération->>Notifications: Publish "report_processed" (Redis Pub/Sub)
     Notifications-->>Client: Notification in-app
 ----
 
 == Évolutions prévues
 
-- Décrire les flux asynchrones (ex: archivage automatique des serveurs inactifs)
-- Détailler la propagation d’événements en cas de suppression de compte
-- Ajouter des flux pour le système de modération ou l'édition collaborative
-
+- Décrire les flux asynchrones supplémentaires (ex: archivage automatique des serveurs inactifs)
+- Détail des flux liés à la gestion des rôles et permissions évoluées (multi-niveaux)
+- Spécification des flux liés à la recherche avancée

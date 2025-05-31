@@ -11,34 +11,36 @@ Cette section formalise les règles fonctionnelles qui encadrent les comportemen
 * Un utilisateur ne peut pas s’envoyer d’invitation à lui-même.
 * La suppression d’un utilisateur entraîne la suppression de ses messages (ou leur anonymisation selon les paramètres de confidentialité).
 * Un utilisateur peut associer un seul compte Google à son compte Beep.
+* Un utilisateur peut associer un seul compte Polytech (LDAP) à son compte Beep.
+* Un compte Google ou Polytech (LDAP) ne peut être associé qu’à un seul compte Beep.
 
 == Règles liées aux serveurs
 
 * Un utilisateur peut créer jusqu’à **5 serveurs** (limite initiale configurable).
 * Un serveur doit toujours avoir un propriétaire (`owner`).
 * La suppression du propriétaire entraîne le transfert de propriété ou la suppression du serveur.
-* Le nom du serveur doit être unique parmi ceux créés par le même utilisateur.
+* Un serveur ne peut pas avoir plus de 1000 membres.
+* Un serveur ne peut pas avoir plus de 100 canaux.
+* Un serveur ne peut pas avoir plus de 50 rôles.
 
 == Règles liées aux rôles et permissions
 
 * Un serveur doit toujours contenir au moins deux rôles : `owner` et `default`.
 * Les noms de rôles doivent être uniques au sein d’un serveur.
 * Le rôle `owner` ne peut être supprimé ni réassigné sans délégation explicite.
-* Un utilisateur ne peut cumuler qu’un nombre limité de rôles (ex: 5) dans un même serveur.
 
 == Règles sur les canaux et la communication
 
 * Un canal ne peut exister sans serveur parent.
 * Seuls les utilisateurs ayant un rôle autorisé peuvent poster dans un canal restreint.
-* Un message peut être modifié dans une fenêtre de 15 minutes après son envoi.
+* Un message peut être modifié.
 * Un message supprimé est définitivement retiré (pas de corbeille), sauf si archivé par un modérateur.
 * Un fichier joint à un message est supprimé si le message est supprimé.
 
 == Règles de modération et sécurité
 
 * Tout message signalé plus de 3 fois est caché en attente de validation.
-* Seuls les utilisateurs avec permission `moderate_messages` peuvent voir les messages cachés.
-* Les serveurs inactifs depuis plus de 6 mois sont archivés automatiquement.
+* Seuls les utilisateurs avec le rôle global `admin` ou le rôle local avec la permission adaptée peuvent voir les messages cachés.
 
 == Règles transverses
 
@@ -52,14 +54,14 @@ Cette section formalise les règles fonctionnelles qui encadrent les comportemen
   ** Ne pas dépasser 2000 caractères
 * Les fichiers joints doivent :
   ** Ne pas dépasser 50 Mo par fichier
-  ** Être d'un type autorisé (images, documents, audio, vidéo)
 
 == Perspectives d'évolution
 
 [NOTE]
 ====
 Cette section pourra être enrichie ultérieurement avec :
-- des règles liées à la notification
-- des règles d’automatisation (bots, réponses automatiques, anti-spam…)
-- des règles tarifaires ou de plan freemium si le produit évolue
+
+* des règles liées à la notification
+* des règles d’automatisation (bots, réponses automatiques, anti-spam…)
+* des règles tarifaires ou de plan freemium si le produit évolue
 ====
