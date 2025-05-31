@@ -74,3 +74,13 @@ graph TD
 - Ajout d’un service de statistiques et d’analyse
 - Intégration de bots pour automatisation communautaire
 - Service de gestion de contenu multimédia avancé
+
+== Interactions entre services
+
+Les services présentés ci-dessus interagissent selon différents modes de communication, qui seront détaillés dans la section dédiée aux interactions techniques.
+
+- Les interactions synchrones sont majoritairement réalisées via des APIs REST.
+- Les flux asynchrones (notifications, modération, supervision) reposent sur un mécanisme de publication/consommation d’événements.
+- Certaines données temporaires (sessions, présence) sont partagées via des caches distribués.
+
+La cartographie détaillée des échanges inter-services est décrite dans <<03-interactions-techniques.adoc>>.

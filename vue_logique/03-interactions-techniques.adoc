@@ -82,13 +82,12 @@ event: "message.created"
 
 == Sécurité des interactions
 
-- Toutes les APIs REST sont protégées par JWT ou cookie sécurisé
-- Les événements sont filtrés côté consommateur selon les droits utilisateur
-- Les appels inter-services utilisent mTLS ou un service mesh si disponible
+- Toutes les APIs REST sont protégées par JWT ou cookie sécurisé.
+- Les événements sont filtrés côté consommateur selon les droits utilisateur.
+- Les appels inter-services utilisent mTLS ou un service mesh si disponible.
 
 == Évolutions prévues
 
-- Introduction de gRPC pour certaines interactions haute-fréquence
-- Ajout d’un service broker pour les workflows multi-services (ex: temporal.io)
-- Spécification OpenAPI pour tous les endpoints publics
-
+- Introduction de gRPC pour certaines interactions haute-fréquence.
+- Ajout d’un service broker pour les workflows multi-services (ex: temporal.io).
+- Spécification OpenAPI pour tous les endpoints publics.
