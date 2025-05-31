@@ -3,15 +3,16 @@
 == Objectifs
 
 La sécurité est une composante structurante de l'architecture de Beep.
-Dans un contexte multi-tenant, avec des flux temps réel, une exposition publique, et des fonctionnalités de communication interpersonnelle, il est indispensable de garantir :
 
-- la confidentialité des échanges,
-- l'intégrité des données,
-- l'authentification forte des utilisateurs,
-- le contrôle strict des autorisations,
-- la résilience face aux menaces.
+Dans un contexte **multi-tenant**, avec des flux temps réel, une exposition publique et des fonctionnalités de communication interpersonnelle, il est indispensable de garantir :
 
-La présente section décrit les dispositifs mis en œuvre pour répondre à ces objectifs dans le cadre de l'architecture microservices.
+- la **confidentialité des échanges**,
+- l'**intégrité des données**,
+- l'**authentification forte** des utilisateurs,
+- le **contrôle strict des autorisations**,
+- la **résilience face aux menaces**.
+
+Cette section décrit les dispositifs mis en œuvre pour répondre à ces objectifs dans le cadre de l'architecture microservices.
 
 == Architecture réseau sécurisée
 
@@ -41,8 +42,8 @@ graph TD
 
 Les communications sont sécurisées à plusieurs niveaux :
 
-- **TLS 1.3** en entrée, sur tous les flux externes.
-- **mTLS interne** (mutual TLS) pour les communications entre l'API Gateway et les services backend, via le Service Mesh Istio.
+- **TLS 1.3** en entrée, sur tous les flux externes,
+- **mTLS interne** (mutual TLS) pour les communications entre l'API Gateway et les services backend (via le Service Mesh Istio),
 - **Network Policies Kubernetes** limitant les communications inter-pods au strict nécessaire.
 
 == Authentification et gestion des identités
@@ -51,28 +52,28 @@ Le système d'authentification repose sur **Keycloak** en mode OIDC provider.
 
 Les utilisateurs peuvent s’authentifier :
 
-- via un compte Beep natif (email / mot de passe),
+- via un compte **Beep natif** (email / mot de passe),
 - via leur compte **Google**,
 - via leur compte **Polytech** (OIDC sur LDAP).
 
-Les tokens JWT signés par Keycloak sont utilisés comme vecteur d’identité et de preuve d’authentification sur l’ensemble des API.
+Les tokens JWT signés par Keycloak sont utilisés comme **vecteur d’identité** et de preuve d’authentification sur l’ensemble des API.
 
 La validation des tokens est réalisée :
 
 - par l’API Gateway en frontal,
-- par les microservices en contrôle d'accès local.
+- par les microservices lors des contrôles d'accès locaux.
 
 == Gestion fine des autorisations
 
-Le contrôle d’accès métier ne se limite pas aux rôles globaux (user, admin).
+Le contrôle d’accès métier ne se limite pas aux rôles globaux (`user`, `admin`).
 
-Un service d’autorisations délégué, basé sur **Permify** (moteur d’autorisations relationnelles), est intégré pour gérer :
+Un service transverse d’autorisations, basé sur **Permify** (moteur d’autorisations relationnelles), est intégré pour gérer :
 
 - les permissions au niveau des **serveurs communautaires**,
 - les permissions par **canal**,
-- les permissions par **action** métier.
+- les permissions par **action métier**.
 
-Permify offre un modèle déclaratif flexible, auditables, permettant de :
+Permify offre un modèle déclaratif flexible et auditable, permettant de :
 
 - décrire les autorisations sous forme de politiques explicites,
 - évaluer les droits en temps réel,
@@ -84,19 +85,20 @@ Exemple : seul un utilisateur disposant de la permission `channel:write` sur un 
 
 Le chiffrement est systématisé :
 
-- TLS 1.3 en entrée et en interne (Istio)
-- JWT signés (RS256)
+- **TLS 1.3** en entrée et en interne (via Istio),
+- **JWT signés** (RS256),
 - Données au repos :
-  - PostgreSQL : encryption at rest (native PG + stockage chiffré Talos/ceph)
-  - ElasticSearch : index chiffrés, transport chiffré
-  - Redis : TLS activé, chiffrement mémoire possible si besoin
+  - **PostgreSQL** : encryption at rest (chiffrement natif PG + stockage chiffré Talos / Ceph),
+  - **ElasticSearch** : index chiffrés, transport chiffré,
+  - **Redis** : TLS activé, chiffrement mémoire optionnel.
+
 - Secrets :
   - rotation automatique via **Vault** pour les secrets dynamiques,
-  - SealedSecrets pour les secrets statiques dans GitOps.
+  - **SealedSecrets** pour les secrets statiques en GitOps.
 
 == Cas spécifique : application mobile
 
-Le flux d'authentification pour l’application mobile repose sur **OIDC avec PKCE** :
+Le flux d'authentification pour l’application mobile repose sur **OIDC avec PKCE**, garantissant une protection forte contre les attaques de type *man-in-the-middle* ou interception de token.
 
 [mermaid]
 ----
@@ -119,30 +121,28 @@ sequenceDiagram
     API_Gateway->>AuthService: Validate JWT
 ----
 
-Cela garantit une protection forte contre les attaques de type man-in-the-middle ou interception de token.
-
 == Sécurisation des communications inter-services
 
 Les échanges inter-microservices sont strictement contrôlés :
 
-- Chaque service dispose de son **identité mTLS** (SPIFFE ID via Istio).
-- Les politiques de communication sont définies dans Istio (Authorization Policies).
-- Les contrôles d'accès métier (via JWT + Permify) viennent en complément du filtrage réseau.
+- chaque service dispose de son **identité mTLS** (SPIFFE ID via Istio),
+- les politiques de communication sont définies dans Istio (**Authorization Policies**),
+- les contrôles d'accès métier (via JWT + Permify) viennent en complément du filtrage réseau.
 
 Ce modèle permet d’appliquer un **principe de moindre privilège**, en réduisant le périmètre d'attaque potentiel.
 
 == Monitoring de la sécurité
 
-Le dispositif de supervision (cf. section Observabilité) est enrichi d’un monitoring sécurité :
+Le dispositif de supervision (cf. section *Observabilité*) est enrichi d’un monitoring sécurité :
 
-- Les logs de sécurité (authentifications, anomalies) sont forwardés vers le **SIEM**.
-- Des alertes automatiques sont configurées (Grafana, Alertmanager).
-- Les certificats mTLS sont surveillés (expiration, renouvellement).
-- Des tableaux de bord sécurité spécifiques sont maintenus.
+- les logs de sécurité (authentifications, anomalies) sont forwardés vers le **SIEM**,
+- des alertes automatiques sont configurées (**Grafana**, **Alertmanager**),
+- les certificats mTLS sont surveillés (expiration, renouvellement),
+- des tableaux de bord sécurité spécifiques sont maintenus.
 
 == Conclusion
 
-L’architecture de sécurité de Beep repose sur des principes robustes et alignés avec les bonnes pratiques actuelles :
+L’architecture de sécurité de Beep repose sur des principes robustes et alignés avec les meilleures pratiques actuelles :
 
 - **Zero Trust** au niveau réseau,
 - **authentification forte** et centralisée,
@@ -150,5 +150,4 @@ L’architecture de sécurité de Beep repose sur des principes robustes et alig
 - **chiffrement systématique**,
 - **supervision active**.
 
-Elle offre un niveau de garantie adapté aux besoins de production, et un socle évolutif pour les futures exigences de conformité.
-
+Elle offre un niveau de garantie adapté aux besoins de production, tout en constituant un socle évolutif pour les futures exigences de conformité et de responsabilité numérique.

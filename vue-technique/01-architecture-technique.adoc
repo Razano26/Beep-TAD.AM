@@ -73,18 +73,42 @@ graph TD
 
 Les principaux services sont :
 
-| Service | Rôle principal |
-|---------|----------------|
-| Auth Service | Authentification OIDC (Keycloak), gestion des tokens |
-| User Management | Gestion des profils utilisateurs, relations |
-| Server Management | Gestion des serveurs communautaires |
-| Channel & Communication | Gestion des canaux, permissions |
-| Messaging | Gestion des messages (temps réel, stockage) |
-| Notification | Notification en temps réel (WebSocket / SSE) |
-| Search | Indexation et recherche full-text |
-| Moderation & Supervision | Modération des contenus, supervision globale |
-| Media Management | Stockage et gestion des fichiers |
-| Authorization (Permify) | Service transverse d’autorisation (ABAC/RBAC) |
+[cols="1,1", options="header"]
+|===
+| Service
+| Rôle principal
+
+| Auth Service
+| Authentification OIDC (Keycloak), gestion des tokens
+
+| User Management
+| Gestion des profils utilisateurs, relations
+
+| Server Management
+| Gestion des serveurs communautaires
+
+| Channel & Communication
+| Gestion des canaux, permissions
+
+| Messaging
+| Gestion des messages (temps réel, stockage)
+
+| Notification
+| Notification en temps réel (WebSocket / SSE)
+
+| Search
+| Indexation et recherche full-text
+
+| Moderation & Supervision
+| Modération des contenus, supervision globale
+
+| Media Management
+| Stockage et gestion des fichiers
+
+| Authorization (Permify)
+| Service transverse d’autorisation (ABAC/RBAC)
+
+|===
 
 == Architecture de déploiement cible
 

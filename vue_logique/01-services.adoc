@@ -49,6 +49,10 @@ Cette vue sert de base aux vues techniques détaillées (architecture de déploi
 | Authorization (Permify)
 | Service transverse d’évaluation des droits d’accès (ABAC/RBAC).
 | Tous les services métiers
+
+| Media Management
+| Gère le stockage et la gestion des fichiers.
+| Messagerie
 |===
 
 == Diagramme des composants (vue simplifiée)

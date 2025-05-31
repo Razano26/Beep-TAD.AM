@@ -9,15 +9,17 @@ Elle précise :
 - L’intégration d’un serveur OIDC
 - Les flux d’authentification
 - La gestion des rôles et permissions
+- L’utilisation du service transverse **Authorization (Permify)**
 - Les implications sur les interactions inter-services
 
 == Architecture de l’authentification
 
-Le service d’authentification repose sur **Keycloak** configuré en mode OIDC provider. Il gère :
+Le service d’authentification de Beep repose sur deux briques complémentaires :
 
-- L’authentification des comptes Beep natifs (email / mot de passe)
-- L’intégration des comptes Google (OIDC externe)
-- L’intégration des comptes Polytech (OIDC sur LDAP Polytech)
+- **Auth Service** : brique applicative qui expose les endpoints REST d’authentification de Beep (signup, login, refresh), orchestre les échanges avec Keycloak, et déclenche les flux applicatifs nécessaires (création de profil utilisateur, audit, etc.).
+- **Keycloak** : Identity Provider OIDC, utilisé par le Auth Service pour la gestion des comptes et des sessions, et par le Frontend pour les flux OAuth interactifs (Google, Polytech).
+
+Dans tous les diagrammes, le `Auth Service` est la façade authentification pour le Frontend.
 
 == Architecture de déploiement
 
@@ -25,17 +27,19 @@ Le service d’authentification repose sur **Keycloak** configuré en mode OIDC 
 ----
 graph TD
     subgraph Cluster K8s [Talos K8s Cluster]
-        nginx[ingress-nginx]
-        keycloak[Keycloak - OIDC]
+        ingress[Ingress NGINX - API Gateway]
         svc_auth[Auth Service]
-        svc_user[User Management]
-        fe[Frontend - Web / Mobile]
+        keycloak[Keycloak - OIDC Provider]
+        svc_user[User Management Service]
+        permify[Authorization Service - Permify]
+        frontend[Frontend - Web / Mobile]
     end
 
-    fe --> nginx
-    nginx --> svc_auth
+    frontend --> ingress
+    ingress --> svc_auth
     svc_auth --> keycloak
-    keycloak --> svc_user
+    svc_auth --> svc_user
+    svc_auth --> permify
 ----
 
 == Flux d’authentification principaux
@@ -46,16 +50,19 @@ graph TD
 ----
 sequenceDiagram
     participant Client
-    participant Auth
+    participant AuthService
     participant Keycloak
-    participant User
+    participant UserService
+    participant Permify
 
-    Client->>Auth: POST /signup (email, password)
-    Auth->>Keycloak: Create user (OIDC)
-    Keycloak-->>Auth: User created
-    Auth->>User: Create profile
-    User-->>Auth: OK
-    Auth-->>Client: Success
+    Client->>AuthService: POST /signup (email, password)
+    AuthService->>Keycloak: Create user (OIDC)
+    Keycloak-->>AuthService: User created
+    AuthService->>UserService: Create profile
+    UserService-->>AuthService: OK
+    AuthService->>Permify: Initialize permissions
+    Permify-->>AuthService: OK
+    AuthService-->>Client: Success
 ----
 
 === Création d’un compte Beep via Polytech (LDAP via OIDC)
@@ -64,16 +71,22 @@ sequenceDiagram
 ----
 sequenceDiagram
     participant Client
+    participant AuthService
     participant Keycloak
     participant LDAP
-    participant User
+    participant UserService
+    participant Permify
 
-    Client->>Keycloak: Start OIDC flow (Polytech)
+    Client->>AuthService: Start OIDC flow (Polytech)
+    AuthService->>Keycloak: Redirect to OIDC login
     Keycloak->>LDAP: Authenticate user
     LDAP-->>Keycloak: OK
-    Keycloak->>User: Create profile if first login
-    User-->>Keycloak: OK
-    Keycloak-->>Client: Authenticated
+    Keycloak-->>AuthService: OIDC callback
+    AuthService->>UserService: Create profile if first login
+    UserService-->>AuthService: OK
+    AuthService->>Permify: Initialize permissions
+    Permify-->>AuthService: OK
+    AuthService-->>Client: Success
 ----
 
 === Création d’un compte Beep via Google
@@ -82,16 +95,22 @@ sequenceDiagram
 ----
 sequenceDiagram
     participant Client
+    participant AuthService
     participant Keycloak
     participant GoogleOIDC
-    participant User
+    participant UserService
+    participant Permify
 
-    Client->>Keycloak: Start OIDC flow (Google)
+    Client->>AuthService: Start OIDC flow (Google)
+    AuthService->>Keycloak: Redirect to OIDC login
     Keycloak->>GoogleOIDC: Authenticate user
     GoogleOIDC-->>Keycloak: OK
-    Keycloak->>User: Create profile if first login
-    User-->>Keycloak: OK
-    Keycloak-->>Client: Authenticated
+    Keycloak-->>AuthService: OIDC callback
+    AuthService->>UserService: Create profile if first login
+    UserService-->>AuthService: OK
+    AuthService->>Permify: Initialize permissions
+    Permify-->>AuthService: OK
+    AuthService-->>Client: Success
 ----
 
 === Connexion d’un utilisateur
@@ -100,10 +119,13 @@ sequenceDiagram
 ----
 sequenceDiagram
     participant Client
+    participant AuthService
     participant Keycloak
 
-    Client->>Keycloak: POST /auth/login
-    Keycloak-->>Client: accessToken + refreshToken
+    Client->>AuthService: POST /auth/login
+    AuthService->>Keycloak: Authenticate
+    Keycloak-->>AuthService: Tokens (accessToken, refreshToken)
+    AuthService-->>Client: accessToken + refreshToken
 ----
 
 === Association d’un compte Google à un compte Beep existant
@@ -112,37 +134,51 @@ sequenceDiagram
 ----
 sequenceDiagram
     participant Client
+    participant AuthService
     participant Keycloak
     participant GoogleOIDC
 
-    Client->>Keycloak: Start "link account" flow
+    Client->>AuthService: Start "link account" flow
+    AuthService->>Keycloak: Redirect to Google OIDC
     Keycloak->>GoogleOIDC: Authenticate
     GoogleOIDC-->>Keycloak: OK
-    Keycloak-->>Client: Account linked
+    Keycloak-->>AuthService: OIDC callback
+    AuthService-->>Client: Account linked
 ----
 
 == Gestion des rôles et permissions
 
 La plateforme distingue :
 
-- **Rôles globaux** (gérés dans Keycloak via OIDC claims)
-  - `user`
-  - `admin`
+* **Rôles globaux** (gérés dans Keycloak via OIDC claims)
+  ** `user`
+  ** `admin`
 
-- **Rôles locaux** (par serveur), gérés au niveau du service `Server Management` et du service `Channel & Communication`
-  - `owner`, `default`, + rôles personnalisés
-  - Ces rôles sont injectés dans les tokens JWT via enrichissement ou via introspection sur les services applicatifs.
+* **Rôles locaux** (par serveur), gérés au niveau du service `Server Management` et du service `Channel & Communication`
+  ** `owner`, `default`, + rôles personnalisés
+  ** Ces rôles sont stockés dans la politique d’autorisation centralisée (via `Authorization Service - Permify`).
 
 == Contrôle d’accès
 
-- Tous les appels REST des microservices sont protégés par **JWT (accessToken)**.
-- Les services vérifient systématiquement le JWT via introspection avec Keycloak.
-- Les autorisations locales (serveur, canal) sont gérées par les services métiers.
+* Tous les appels REST des microservices sont protégés par **JWT (accessToken)**.
+* Les services vérifient systématiquement le JWT en amont via l’API Gateway.
+* Les autorisations locales (serveur, canal) sont évaluées via des appels REST/gRPC vers le service transverse **Authorization (Permify)**.
+
+Exemple :
+
+* Lorsqu’un utilisateur tente de poster un message dans un canal, le service `Messaging` interroge **Permify** pour valider que l’utilisateur dispose de la permission `channel:write` sur ce canal.
+
+Ce modèle garantit :
+
+* Une cohérence des politiques d’autorisation
+* Une capacité d’audit transverse
+* Une flexibilité pour faire évoluer les modèles de permission sans modifier chaque microservice
 
 == Conclusion
 
 Ce système garantit :
 
-- Une fédération simple des identités (Google, Polytech)
-- Une séparation claire entre **authentification** (Keycloak) et **autorisations métier** (services applicatifs)
-- Une extensibilité pour de futurs providers d’identité (ex : SAML entreprise)
+* Une fédération simple des identités (Google, Polytech)
+* Une séparation claire entre **authentification** (Keycloak) et **autorisations métier** (via `Authorization Service - Permify`)
+* Une extensibilité pour de futurs providers d’identité (ex: SAML entreprise)
+* Une architecture d’autorisation évolutive et auditable

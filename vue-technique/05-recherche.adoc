@@ -15,7 +15,7 @@ Cette section présente l’architecture retenue pour cette brique fonctionnelle
 
 == Architecture technique
 
-Le moteur de recherche est conçu comme un **service dédié** de l’architecture microservices.
+Le moteur de recherche est conçu comme un **service transverse dédié** au sein de l’architecture microservices.
 
 [mermaid]
 ----
@@ -37,26 +37,43 @@ graph LR
     Files -->|Indexation| SearchService
 ----
 
-Le service `Search` encapsule l’accès à ElasticSearch, et centralise :
+Le service `Search` encapsule l’accès à ElasticSearch et centralise :
 
 - la logique d’indexation,
 - la gestion des droits,
 - l’interface de recherche pour les clients frontaux.
 
-Cela garantit l’indépendance vis-à-vis du moteur sous-jacent et facilite son évolution.
+Cela garantit une indépendance vis-à-vis du moteur sous-jacent et facilite son évolution.
 
 == Stack technique retenue
 
-| Composant | Technologie | Justification |
-|-----------|-------------|---------------|
-| Moteur de recherche | ElasticSearch OSS | Maturité, performance, richesse fonctionnelle |
-| Service API | Search Service (Go / NestJS) | API dédiée, contrôle d’accès centralisé |
-| Frontend | React SPA | Intégration fluide à l’expérience utilisateur Beep |
-| Communication | REST | Simplicité, compatibilité multi-clients |
+[cols="1,1,1", options="header"]
+|===
+| Composant
+| Technologie
+| Justification
+
+| Moteur de recherche
+| ElasticSearch OSS
+| Maturité, performance, richesse fonctionnelle
+
+| Service API
+| Search Service (Go / NestJS)
+| API dédiée, contrôle d’accès centralisé
+
+| Frontend
+| React SPA
+| Intégration fluide à l’expérience utilisateur Beep
+
+| Communication
+| REST
+| Simplicité, compatibilité multi-clients
+
+|===
 
 == Processus d’indexation
 
-Les services métiers (messagerie, utilisateurs, fichiers) publient les événements métier pertinents vers le service `Search`, via des appels REST ou des hooks.
+Les services métier (messagerie, utilisateurs, fichiers) publient les événements pertinents vers le service `Search`, via des appels REST ou des hooks.
 
 [mermaid]
 ----
@@ -77,7 +94,7 @@ Chaque type d’objet dispose de son propre index :
 - **Utilisateurs** : username, displayName, email partiel (si autorisé)
 - **Serveurs** : nom, description
 
-L’indexation est **quasi temps réel**, pour garantir une fraîcheur optimale des résultats.
+L’indexation est **quasi temps réel**, garantissant une fraîcheur optimale des résultats.
 
 == Processus de recherche
 
@@ -101,49 +118,51 @@ sequenceDiagram
 
 Le service `Search` :
 
-- enrichit les requêtes avec le **contexte utilisateur** (scope JWT),
-- applique des **filtres d’autorisation** (ex : canaux accessibles),
+- enrichit les requêtes avec le **contexte utilisateur** (extraction des claims du JWT),
+- applique des **filtres d’autorisation** dynamiques (scope des serveurs et canaux accessibles),
+- effectue si besoin des vérifications d’autorisation spécifiques via des appels à **Permify**,
 - formate les résultats pour une présentation unifiée.
 
 == UX et intégration UI
 
 La recherche est intégrée en **composant transverse** dans l’interface Beep :
 
-- champ unique de recherche,
+- champ de recherche unifié,
 - suggestions temps réel (typeahead),
 - affichage des résultats segmenté par type (messages, fichiers, utilisateurs, serveurs),
 - filtres avancés (serveur, canal, date, type de contenu).
 
-Cela garantit une UX cohérente, sans exposition des détails techniques de l’architecture.
+Cela garantit une UX cohérente et fluide, sans exposition des détails techniques de l’architecture.
 
 == Contrôle d’accès
 
 Le moteur de recherche respecte strictement les **permissions d’accès** :
 
 - Seuls les contenus visibles par l’utilisateur connecté sont recherchables.
-- Les droits sont validés par le service `Search`, en exploitant les claims JWT et via des appels à `Permify` au besoin.
+- Les droits sont validés par le service `Search`, en exploitant :
+  - les **claims JWT**,
+  - des requêtes vers **Permify** pour les vérifications complexes ou contextuelles (ex : permissions granulaires par canal).
 
-Ainsi, un utilisateur ne pourra jamais voir des messages postés dans un canal auquel il n’a pas accès.
+Ainsi, un utilisateur ne pourra jamais accéder à des messages ou documents en dehors de son périmètre autorisé.
 
 == Scalabilité et performances
 
 ElasticSearch permet une montée en charge horizontale :
 
-- index sharding par type de contenu,
+- sharding des index par type de contenu,
 - possibilité de partitionnement par serveur (si besoin).
 
-Les index sont optimisés pour le **temps de réponse** (< 100 ms sur des requêtes courantes).
+Le service `Search` peut être scalé indépendamment des autres services en fonction de la volumétrie et du trafic.
 
-Le service `Search` peut être scalé indépendamment des autres services selon la volumétrie.
+Les index sont optimisés pour des **temps de réponse faibles** (< 100 ms sur les requêtes courantes).
 
 == Conclusion
 
-L’intégration d’un moteur de recherche dédié renforce considérablement l’expérience utilisateur sur Beep :
+L’intégration d’un moteur de recherche transverse dédié renforce considérablement l’expérience utilisateur de Beep :
 
-- Navigation fluide dans les contenus,
-- Recherche contextuelle précise,
-- Respect strict des permissions,
-- Montée en charge maîtrisée.
+- navigation fluide dans les contenus,
+- recherche contextuelle précise,
+- respect strict des permissions,
+- montée en charge maîtrisée.
 
-Le découplage en microservice garantit également une **évolutivité** et une **maintenabilité** optimale de cette brique.
-
+Le découplage en microservice garantit également une **évolutivité** et une **maintenabilité** optimales pour cette brique.

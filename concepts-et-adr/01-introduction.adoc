@@ -50,7 +50,7 @@ Le document est organisé en **vues complémentaires**, permettant de couvrir de
 * **Vue conceptuelle** : définit les modèles métier fondamentaux, les rôles et les entités manipulées, indépendamment des choix techniques.
 * **Vue logique** : décrit le découpage fonctionnel en services et les interactions métier.
 * **Vue technique** : détaille les choix technologiques, les architectures de déploiement, les patterns de communication et les mesures de sécurité.
-* **Vues transverses** : couvrent les aspects transverses tels que l’observabilité, la supervision, la gestion de production et l’évolutivité.
+// **Vues transverses** : couvrent les aspects transverses tels que l’observabilité, la supervision, la gestion de production et l’évolutivité.
 
 Les décisions d’architecture ont été prises selon les principes suivants :
 

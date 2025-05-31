@@ -9,7 +9,7 @@ L’observabilité du système repose sur plusieurs dimensions complémentaires 
 - la journalisation des événements et des flux techniques (logs),
 - la traçabilité distribuée des requêtes (traces),
 - la collecte et l’analyse de métriques métier et techniques (metrics),
-- l'intégration avec les outils de supervision existants (SOC/SEIM entreprise).
+- l'intégration avec les outils de supervision existants (SOC/SIEM).
 
 == Architecture d'observabilité
 
@@ -59,7 +59,7 @@ Les composants clés sont :
 - **Grafana Tempo** pour le tracing distribué (basé sur OpenTelemetry)
 - **Grafana Loki** pour la journalisation centralisée des logs
 - **Grafana** comme point d’entrée pour l’observabilité unifiée
-- **ElasticSearch** pour l'archivage long terme des logs et leur exposition vers le SIEM / SOC.
+- **ElasticSearch** pour l'archivage long terme des logs et leur exposition vers le SIEM.
 
 Le maillage réseau assuré par **Istio** (mutual TLS activé) permet une instrumentation automatique et homogène de la majorité des flux inter-services, facilitant la collecte des traces et métriques.
 
@@ -74,7 +74,7 @@ Chaque microservice produit des logs structurés au format JSON, enrichis avec l
 
 Les logs sont agrégés via **Loki** pour une analyse en temps réel, avec rétention courte (15 jours) pour l’exploitation courante, et archivage plus long (ElasticSearch) pour les besoins de conformité et de forensique.
 
-Les événements de sécurité critiques (authentification, tentatives d'attaque, modification de rôles, suppressions sensibles…) sont systématiquement exportés vers le **SIEM** de l’entreprise.
+Les événements de sécurité critiques (authentification, tentatives d'attaque, modification de rôles, suppressions sensibles…) sont systématiquement exportés vers le **SIEM**.
 
 == Traces distribuées
 
@@ -154,4 +154,3 @@ L’architecture d’observabilité de Beep repose sur des standards ouverts et 
 - un alignement avec les pratiques de supervision de l’entreprise.
 
 Elle constitue un levier clé pour garantir la qualité de service, la sécurité, et l’évolutivité de la plateforme.
-
