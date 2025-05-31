@@ -66,6 +66,29 @@ Réponse :
 }
 ----
 
+=== REST – Exemple JSON : Authentification utilisateur
+
+[source,json]
+----
+POST /auth/login
+
+{
+  "email": "test@example.com",
+  "password": "super-secret"
+}
+----
+
+Réponse :
+
+[source,json]
+----
+{
+  "accessToken": "eyJhbGciOiJIUzI1...",
+  "refreshToken": "def456...",
+  "expiresIn": 3600
+}
+----
+
 === Événement – Nouveau message
 
 [source,json]
@@ -79,6 +102,20 @@ event: "message.created"
   "type": "text"
 }
 ----
+
+=== Événement – Acceptation d’une demande d’ami
+
+[source,json]
+----
+event: "friend_request.accepted"
+
+{
+  "userId": "user-123",
+  "friendId": "user-456",
+  "timestamp": "2025-05-27T16:00:00Z"
+}
+----
+
 
 == Sécurité des interactions
 

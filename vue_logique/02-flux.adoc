@@ -96,10 +96,24 @@ Lorsqu’un utilisateur accepte une invitation, il devient membre d’un serveur
 5. Le service `Notifications` est mis à jour.
 
 === Diagramme
-[NOTE]
-====
-Diagramme à insérer — TODO
-====
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Serveurs
+    participant Rôles
+    participant Canaux
+    participant Notifications
+
+    Client->>Serveurs: POST /server-invitations/accept
+    Serveurs->>Serveurs: Add user to members
+    Serveurs->>Rôles: Assign default role
+    Rôles-->>Serveurs: OK
+    Serveurs->>Canaux: Compute authorized channels
+    Canaux-->>Serveurs: OK
+    Serveurs->>Notifications: Emit "joined_server"
+    Notifications-->>Client: Notification in-app
+----
 
 == Évolutions prévues
 

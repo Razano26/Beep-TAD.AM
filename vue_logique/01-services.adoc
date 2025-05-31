@@ -6,35 +6,41 @@ Cette section présente le découpage logique de l’application Beep en service
 
 == Services fonctionnels
 
-[cols="1,3", options="header"]
+[cols="1,3,2", options="header"]
 |===
-| Service
-| Responsabilités
+| Service | Responsabilités | Dépendances critiques
 
 | Authentification
 | Gère l’inscription, la connexion, les sessions, les providers externes (Google, Polytech), les tokens d’accès.
+| Utilisateurs
 
 | Gestion des utilisateurs
 | Gère les profils utilisateurs, les avatars, les préférences, la liste d’amis, les relations.
+| Authentification
 
 | Serveurs communautaires
 | Gère la création de serveurs, la configuration des rôles, la gestion des membres, les invitations.
+| Authentification, Utilisateurs
 
 | Canaux et communication
 | Gère les canaux (texte, vocal), les permissions par rôle, la hiérarchie des canaux.
+| Serveurs, Rôles
 
 | Messagerie
 | Gère l’envoi, la réception, la modification et suppression des messages, ainsi que le partage de fichiers.
+| Canaux, Utilisateurs, Notifications
 
 | Notifications
 | Gère les alertes push, les notifications in-app, les statuts.
+| Messagerie, Gestion des utilisateurs
 
 | Recherche
 | Permet de rechercher des utilisateurs, des serveurs, des messages, ou des fichiers.
+| Utilisateurs, Messagerie
 
 | Supervision & modération
 | Permet de signaler, masquer ou modérer des contenus, d’archiver ou supprimer des serveurs inactifs.
-
+| Messagerie, Utilisateurs, Serveurs
 |===
 
 == Diagramme des composants (Vue simplifiée)
@@ -84,3 +90,21 @@ Les services présentés ci-dessus interagissent selon différents modes de comm
 - Certaines données temporaires (sessions, présence) sont partagées via des caches distribués.
 
 La cartographie détaillée des échanges inter-services est décrite dans <<03-interactions-techniques.adoc>>.
+
+== Bilan de la vue logique
+
+- **Maturité des services** :
+  - Authentification, Gestion des utilisateurs, Messagerie : définis et stables
+  - Notifications, Recherche : à préciser dans la vue technique
+  - Supervision & modération : en cours de formalisation (flux à détailler)
+
+- **Points à approfondir** :
+  - Flux de modération (interactions H ↔︎ E / B)
+  - Gestion de la recherche avancée (scalabilité, indexation)
+  - Rôles et permissions multi-niveaux (serveur / canal)
+
+- **Hypothèses technologiques à valider en vue technique** :
+  - REST pour interactions synchrones
+  - Pub/Sub pour événements (Kafka ? autre ?)
+  - Cache distribué (Redis ?) pour sessions et présence
+  - Sécurité inter-service : mTLS, Service Mesh ?
