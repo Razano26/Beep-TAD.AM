@@ -11,7 +11,11 @@ Il a pour objectif de :
 * Proposer une architecture modulaire, maintenable et scalable
 * Servir de référence pour les équipes de développement, de déploiement et d’exploitation
 
+Ces objectifs structurent l’ensemble du document et constituent le fil conducteur des choix d’architecture et de modélisation qui seront détaillés dans les sections méthodologiques et techniques à venir.
+
 == Portée du document
+
+Le périmètre ainsi défini permet de concentrer le présent document sur les aspects d’architecture logicielle et technique essentiels au bon fonctionnement et à l’évolution de la plateforme.
 
 Ce document couvre :
 
@@ -39,15 +43,24 @@ Le présent document s’adresse principalement :
 
 == Méthodologie
 
-// TODO: Update this section when the document is more mature
-L’approche adoptée repose sur une structuration en vues :
+La démarche de conception et de formalisation de ce document suit une approche structurée, alignée avec les bonnes pratiques d’architecture logicielle.
 
-* Vue métier (rôles, cas d’usage, règles fonctionnelles)
-* Vue logique (découpage en services et responsabilités)
-* Vue technique (infrastructure, sécurité, déploiement)
-* Vues transverses (observabilité, supervision, résilience)
+Le document est organisé en **vues complémentaires**, permettant de couvrir de manière cohérente les différents aspects du système :
 
-Les décisions d’architecture sont documentées, argumentées et illustrées par des schémas (composants, séquences, déploiement, etc.) afin de garantir la transparence et la traçabilité des choix effectués.
+* **Vue conceptuelle** : définit les modèles métier fondamentaux, les rôles et les entités manipulées, indépendamment des choix techniques.
+* **Vue logique** : décrit le découpage fonctionnel en services et les interactions métier.
+* **Vue technique** : détaille les choix technologiques, les architectures de déploiement, les patterns de communication et les mesures de sécurité.
+* **Vues transverses** : couvrent les aspects transverses tels que l’observabilité, la supervision, la gestion de production et l’évolutivité.
+
+Les décisions d’architecture ont été prises selon les principes suivants :
+
+* **Alignement sur les besoins métier** : répondre efficacement aux cas d’usage attendus par les utilisateurs.
+* **Robustesse et sécurité** : garantir un niveau de sécurité élevé dans un contexte multi-tenant et public.
+* **Scalabilité maîtrisée** : permettre une montée en charge fluide des services critiques.
+* **Observabilité et opérabilité** : assurer la visibilité, la supervision et la maintenabilité du système en production.
+* **Conformité aux contraintes de l’exercice pédagogique** : respecter les limitations imposées (absence de broker, architecture REST-first, etc.).
+
+Le document est évolutif : il est enrichi au fil des itérations de conception et de mise en œuvre, avec l’objectif de rester une **référence vivante** pour l’ensemble des parties prenantes du projet.
 
 == Historique
 

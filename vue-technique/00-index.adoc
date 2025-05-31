@@ -1,3 +1,9 @@
+= Vue technique
+
+Cette section détaille les **aspects techniques** de l’architecture de Beep : infrastructure, déploiement, sécurité, observabilité et intégration.
+
+Elle traduit les choix logiques en solutions concrètes, en tenant compte des contraintes opérationnelles et des exigences de qualité de service.
+
 include::01-architecture-technique.adoc[leveloffset=+1]
 include::02-authentification.adoc[leveloffset=+1]
 include::03-observabilite-supervision.adoc[leveloffset=+1]

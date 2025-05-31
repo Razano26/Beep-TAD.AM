@@ -33,7 +33,7 @@ graph TD
         prom[Prometheus]
         loki[Grafana Loki]
         tempo[Grafana Tempo]
-        es[ElasticSearch (SOC)]
+        es[ElasticSearch - SOC]
     end
 
     istio --> prom

@@ -1,3 +1,9 @@
+= Vue logique
+
+Cette section présente l’**architecture fonctionnelle** de Beep, en décrivant le découpage en services logiques, les responsabilités métier associées et les principaux flux d’interaction.
+
+Elle constitue le socle de la modélisation technique et facilite l’alignement entre conception métier et implémentation.
+
 include::01-services.adoc[leveloffset=+1]
 include::02-flux.adoc[leveloffset=+1]
 include::03-interactions-techniques.adoc[leveloffset=+1]

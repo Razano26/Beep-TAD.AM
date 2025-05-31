@@ -26,10 +26,10 @@ Le service d’authentification repose sur **Keycloak** configuré en mode OIDC 
 graph TD
     subgraph Cluster K8s [Talos K8s Cluster]
         nginx[ingress-nginx]
-        keycloak[Keycloak (OIDC)]
+        keycloak[Keycloak - OIDC]
         svc_auth[Auth Service]
         svc_user[User Management]
-        fe[Frontend (Web / Mobile)]
+        fe[Frontend - Web / Mobile]
     end
 
     fe --> nginx

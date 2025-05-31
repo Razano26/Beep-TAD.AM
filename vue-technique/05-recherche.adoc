@@ -20,9 +20,9 @@ Le moteur de recherche est conçu comme un **service dédié** de l’architectu
 [mermaid]
 ----
 graph LR
-    UI[Interface utilisateur (React SPA)]
-    API[API Gateway (Istio Ingress)]
-    SearchService[Search Service (microservice)]
+    UI[Interface utilisateur - React SPA]
+    API[API Gateway - Istio Ingress]
+    SearchService[Search Service - microservice]
     Elastic[ElasticSearch Cluster]
     Messaging[Messaging Service]
     Users[User Management]

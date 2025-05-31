@@ -20,10 +20,10 @@ L'architecture réseau repose sur le principe de **séparation stricte des zones
 [mermaid]
 ----
 graph TD
-    Internet -->|HTTPS 443| Ingress[Ingress Nginx (DMZ)]
-    Ingress -->|mTLS| Gateway[API Gateway (Istio Ingress)]
+    Internet -->|HTTPS 443| Ingress[Ingress Nginx - DMZ]
+    Ingress -->|mTLS| Gateway[API Gateway - Istio Ingress]
 
-    subgraph K8s Cluster (Talos)
+    subgraph K8s Cluster - Talos
         Gateway -->|mTLS| Auth[Auth Service]
         Gateway -->|mTLS| Users[User Management]
         Gateway -->|mTLS| Servers[Server Management]

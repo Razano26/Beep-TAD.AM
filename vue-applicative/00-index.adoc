@@ -1,2 +1,8 @@
+= Vue applicative
+
+Cette section décrit l’application Beep du point de vue des **usages métier** et de l’expérience utilisateur.
+
+Elle formalise les cas d’usage, les règles fonctionnelles et les interactions attendues, qui servent de référence pour le découpage en services et les choix techniques détaillés ultérieurement.
+
 include::01-cas-usage.adoc[leveloffset=+1]
 include::02-regles-metier.adoc[leveloffset=+1]

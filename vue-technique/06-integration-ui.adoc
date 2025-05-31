@@ -17,7 +17,7 @@ Cette section décrit :
 [mermaid]
 ----
 graph TD
-    Client[Frontend Beep (SPA React)]
+    Client[Frontend Beep - SPA React]
     APIGateway[Istio Ingress / API Gateway]
     Auth[Auth Service]
     Users[User Management]

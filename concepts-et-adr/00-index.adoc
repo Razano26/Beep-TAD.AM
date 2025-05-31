@@ -1,3 +1,9 @@
+= Concepts fondamentaux et décisions d’architecture (ADR)
+
+Cette partie du document présente les modèles conceptuels qui sous-tendent l’application Beep, ainsi que les rôles métiers et les premières décisions d’architecture retenues.
+
+Elle sert de fondation pour les vues logiques et techniques décrites dans les sections suivantes.
+
 include::01-introduction.adoc[leveloffset=+1]
 include::02-modeles-conceptuels.adoc[leveloffset=+1]
 include::03-roles.adoc[leveloffset=+1]
