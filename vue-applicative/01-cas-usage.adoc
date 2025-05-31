@@ -51,6 +51,19 @@ Cette section décrit les principales fonctionnalités accessibles aux utilisate
 * Je veux attribuer des rôles aux membres de mon serveur selon leurs responsabilités.
 * Je veux restreindre l'accès à certaines actions (création de canal, suppression de message…) selon le rôle.
 
+== Notifications et alertes
+
+* Je veux recevoir une notification en temps réel lorsqu’un ami m’envoie un message.
+* Je veux être notifié lorsqu’on m’invite à rejoindre un serveur.
+* Je veux pouvoir activer ou désactiver certaines notifications (push ou in-app) dans mes préférences.
+
+== Recherche de contenu
+
+* Je veux rechercher un utilisateur par son nom ou son identifiant.
+* Je veux rechercher un message contenant un mot-clé dans les canaux auxquels j’ai accès.
+* Je veux rechercher un fichier partagé dans un serveur donné.
+
+
 == Contraintes fonctionnelles
 
 === Performance et latence
