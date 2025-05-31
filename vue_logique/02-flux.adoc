@@ -115,6 +115,40 @@ sequenceDiagram
     Notifications-->>Client: Notification in-app
 ----
 
+== Flux 4 : Signalement d’un message
+
+=== Contexte
+Un utilisateur signale un message inapproprié.
+
+=== Services impliqués
+- `Messagerie`
+- `Modération`
+- `Notifications`
+
+=== Description
+1. L’utilisateur signale un message.
+2. Le service `Messagerie` publie un événement `message.reported`.
+3. Le service `Modération` reçoit l’événement et traite le signalement.
+4. Le service `Notifications` informe les modérateurs.
+
+=== Diagramme
+
+[mermaid]
+----
+sequenceDiagram
+    participant Client
+    participant Messagerie
+    participant Modération
+    participant Notifications
+
+    Client->>Messagerie: POST /messages/:id/report
+    Messagerie->>Messagerie: Emit "message.reported"
+    Messagerie->>Modération: Receive event
+    Modération->>Modération: Process report
+    Modération->>Notifications: Emit "report_processed"
+    Notifications-->>Client: Notification in-app
+----
+
 == Évolutions prévues
 
 - Décrire les flux asynchrones (ex: archivage automatique des serveurs inactifs)
