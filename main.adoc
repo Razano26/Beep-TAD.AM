@@ -11,20 +11,16 @@ Louis LABEYRIE <labeyrielouis@gmail.com>
 
 // Concepts et ADR
 <<<
-[%notitle]
 include::concepts-et-adr/00-index.adoc[leveloffset=+1]
 
 // Vue applicative
 <<<
-[%notitle]
 include::vue-applicative/00-index.adoc[leveloffset=+1]
 
 // Vue logique
 <<<
-[%notitle]
 include::vue_logique/00-index.adoc[leveloffset=+1]
 
 // Vue technique
 <<<
-[%notitle]
 include::vue-technique/00-index.adoc[leveloffset=+1]
